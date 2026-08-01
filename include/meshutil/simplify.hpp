@@ -41,6 +41,7 @@ class Simplifier {
   ~Simplifier();
 
   SimplifyResult simplify(MeshView mesh, const SimplifyOptions &options);
+  SimplifyResult simplify(Mesh mesh, const SimplifyOptions &options);
 
  private:
   class Impl;
@@ -48,5 +49,6 @@ class Simplifier {
 };
 
 SimplifyResult simplify(MeshView mesh, const SimplifyOptions &options);
+SimplifyResult simplify(Mesh mesh, const SimplifyOptions &options);
 
 }  // namespace meshutil

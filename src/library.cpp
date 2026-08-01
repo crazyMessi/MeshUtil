@@ -61,6 +61,31 @@ standalone_decimator::InputMesh copy_input(const MeshView mesh)
   return input;
 }
 
+standalone_decimator::InputMesh consume_input(Mesh mesh)
+{
+  validate_mesh(mesh.view());
+  standalone_decimator::InputMesh input;
+  input.vertices.resize(mesh.vertex_count());
+  input.faces.resize(mesh.triangle_count());
+  for (std::size_t vertex = 0; vertex < input.vertices.size(); ++vertex) {
+    input.vertices[vertex] = {
+        static_cast<double>(mesh.positions[vertex * 3]),
+        static_cast<double>(mesh.positions[vertex * 3 + 1]),
+        static_cast<double>(mesh.positions[vertex * 3 + 2]),
+    };
+  }
+  std::vector<float>().swap(mesh.positions);
+  for (std::size_t face = 0; face < input.faces.size(); ++face) {
+    input.faces[face] = {
+        mesh.triangles[face * 3],
+        mesh.triangles[face * 3 + 1],
+        mesh.triangles[face * 3 + 2],
+    };
+  }
+  std::vector<Index>().swap(mesh.triangles);
+  return input;
+}
+
 Mesh copy_output(const standalone_decimator::InputMesh &input)
 {
   Mesh output;
@@ -198,10 +223,50 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   return result;
 }
 
+SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
+{
+  const std::size_t input_faces = mesh.triangle_count();
+  if (impl_ == nullptr) {
+    throw std::logic_error("cannot use a moved-from Simplifier");
+  }
+  if (options.target_faces > input_faces) {
+    throw std::invalid_argument("target_faces exceeds the input triangle count");
+  }
+  if (options.threads != 0 && options.threads != 1) {
+    throw std::invalid_argument(
+        "the baseline QEM backend currently supports threads=0 or threads=1");
+  }
+
+  standalone_decimator::InputMesh input = consume_input(std::move(mesh));
+  const auto core_start = std::chrono::steady_clock::now();
+  standalone_decimator::QemDecimator decimator(std::move(input));
+  standalone_decimator::DecimatorOptions internal_options;
+  internal_options.target_faces =
+      effective_target(input_faces, options.target_faces);
+  internal_options.trace_path = options.trace_path;
+  const standalone_decimator::DecimatorStats internal_stats =
+      decimator.decimate(internal_options);
+  standalone_decimator::InputMesh compacted = decimator.compact_mesh();
+  const auto core_end = std::chrono::steady_clock::now();
+
+  SimplifyResult result;
+  result.mesh = copy_output(compacted);
+  result.stats = copy_stats(
+      internal_stats,
+      std::chrono::duration<double>(core_end - core_start).count());
+  return result;
+}
+
 SimplifyResult simplify(const MeshView mesh, const SimplifyOptions &options)
 {
   Simplifier simplifier;
   return simplifier.simplify(mesh, options);
+}
+
+SimplifyResult simplify(Mesh mesh, const SimplifyOptions &options)
+{
+  Simplifier simplifier;
+  return simplifier.simplify(std::move(mesh), options);
 }
 
 }  // namespace meshutil

@@ -99,11 +99,11 @@ int main(const int argc, char **argv)
 {
   try {
     const Arguments arguments = parse_arguments(argc, argv);
-    const meshutil::Mesh input = meshutil::read_mesh(arguments.input);
+    meshutil::Mesh input = meshutil::read_mesh(arguments.input);
     meshutil::SimplifyOptions options;
     options.target_faces = arguments.target_faces;
     options.trace_path = arguments.trace;
-    meshutil::SimplifyResult result = meshutil::simplify(input.view(), options);
+    meshutil::SimplifyResult result = meshutil::simplify(std::move(input), options);
     meshutil::write_mesh(arguments.output, result.mesh);
     const meshutil::SimplifyStats &stats = result.stats;
 

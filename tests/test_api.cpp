@@ -57,6 +57,15 @@ int main()
   require(result.mesh.triangle_count() <= 6, "target face count was exceeded");
   meshutil::validate_mesh(result.mesh.view());
 
+  const meshutil::SimplifyResult owning_result =
+      meshutil::simplify(meshutil::Mesh(input), options);
+  require(
+      owning_result.mesh.positions == result.mesh.positions,
+      "owning positions changed the result");
+  require(
+      owning_result.mesh.triangles == result.mesh.triangles,
+      "owning triangles changed the result");
+
   const std::filesystem::path output =
       std::filesystem::temp_directory_path() / "meshutil_api_test.obj";
   meshutil::write_mesh(output.string(), result.mesh);
