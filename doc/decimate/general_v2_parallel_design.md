@@ -41,3 +41,26 @@ stronger proof and locking scheme exists for concurrent disk/radial mutation.
 Report candidate window size, selected independent-set size, stale count,
 conflict count, topology/flip rejection counts, parallel evaluation wall,
 serial commit wall, and total collapse wall for 1/2/4/8/16/32 threads.
+
+## Rejected prototype: global heap independent-set batches
+
+The conservative two-hop prototype was implemented and passed tiny cases plus
+formal topology smoke tests. It used thread-local read scratch, a persistent
+worker group, deterministic serial commits, stale revalidation, and no lost
+heap candidates.
+
+It was rejected for performance:
+
+- serial baseline: about 75 seconds on the 17.9-million-face S case;
+- two threads, 128-candidate window: more than 180 seconds;
+- two threads, 4096-candidate window: 122.6 seconds;
+- four threads, 256-candidate window: about 108.5 seconds.
+
+Parallel evaluation itself dropped to 5-10 seconds, but repeatedly extracting a
+global top-K window, building two-hop conflict sets, and refreshing conflicting
+candidates dominated runtime. Increasing the window did not solve the problem.
+
+General V2 must therefore avoid repeated global-heap round trips. The next
+parallel design should use persistent spatial or graph partitions with local
+candidate queues, protect partition boundaries during local collapse, then run
+a global cleanup pass.
