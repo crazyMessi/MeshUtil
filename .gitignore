@@ -1,4 +1,6 @@
 build/
 temp_output/
+__pycache__/
+*.py[cod]
 *.o
 *.obj
