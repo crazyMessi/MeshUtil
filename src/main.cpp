@@ -1,4 +1,5 @@
-#include "mesh.hpp"
+#include "meshutil/io.hpp"
+#include "meshutil/simplify.hpp"
 
 #include <cstddef>
 #include <cstdlib>
@@ -43,17 +44,6 @@ std::size_t parse_count(const std::string &text)
     usage_error("invalid --target-faces value: " + text);
   }
   return static_cast<std::size_t>(value);
-}
-
-std::size_t blender_effective_target(const std::size_t input_faces,
-                                     const std::size_t requested_faces) noexcept
-{
-  if (input_faces == 0 || input_faces <= requested_faces) {
-    return requested_faces;
-  }
-  const float ratio = static_cast<float>(
-      static_cast<double>(requested_faces) / static_cast<double>(input_faces));
-  return static_cast<std::size_t>(static_cast<float>(input_faces) * ratio);
 }
 
 Arguments parse_arguments(const int argc, char **argv)
@@ -109,17 +99,13 @@ int main(const int argc, char **argv)
 {
   try {
     const Arguments arguments = parse_arguments(argc, argv);
-    standalone_decimator::InputMesh input =
-        standalone_decimator::read_binary_triangle_ply(arguments.input);
-    const std::size_t effective_target =
-        blender_effective_target(input.faces.size(), arguments.target_faces);
-    standalone_decimator::QemDecimator decimator(std::move(input));
-    standalone_decimator::DecimatorOptions options;
-    options.target_faces = effective_target;
+    const meshutil::Mesh input = meshutil::read_mesh(arguments.input);
+    meshutil::SimplifyOptions options;
+    options.target_faces = arguments.target_faces;
     options.trace_path = arguments.trace;
-    const standalone_decimator::DecimatorStats stats = decimator.decimate(options);
-    standalone_decimator::InputMesh output = decimator.compact_mesh();
-    standalone_decimator::write_binary_triangle_ply_atomic(arguments.output, output);
+    meshutil::SimplifyResult result = meshutil::simplify(input.view(), options);
+    meshutil::write_mesh(arguments.output, result.mesh);
+    const meshutil::SimplifyStats &stats = result.stats;
 
     std::cout << "{\"success\":true"
               << ",\"input_vertices\":" << stats.input_vertices
@@ -130,6 +116,7 @@ int main(const int argc, char **argv)
               << ",\"rejected_topology\":" << stats.rejected_topology
               << ",\"rejected_flip\":" << stats.rejected_flip
               << ",\"invalid_edges\":" << stats.invalid_edges
+              << ",\"core_seconds\":" << stats.core_seconds
               << ",\"target_reached\":" << (stats.target_reached ? "true" : "false") << "}\n";
     return stats.target_reached ? 0 : 3;
   }

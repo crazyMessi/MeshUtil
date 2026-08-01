@@ -1,0 +1,19 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "meshutil"
+version = "0.1.0"
+description = "General-purpose QEM edge-collapse mesh simplification"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.23"]
+
+[tool.scikit-build]
+cmake.args = [
+  "-DMESHUTIL_BUILD_CLI=OFF",
+  "-DMESHUTIL_BUILD_PYTHON=ON",
+  "-DBUILD_TESTING=OFF",
+]
+wheel.packages = []

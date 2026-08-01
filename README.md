@@ -1,9 +1,41 @@
-# Standalone Triangle QEM Decimator
+# MeshUtil
 
-This directory contains a self-contained C++17 decimator. It does not link to
-Blender and does not require Blender, `bpy`, or Blender Python at runtime. The
-implementation independently recreates the Blender 4.0.2 collapse behavior
-needed by the strict binary triangle PLY pipeline.
+MeshUtil is a C++17 QEM edge-collapse mesh simplification library with C++,
+Python, and command-line interfaces. It does not link to Blender and does not
+require Blender, `bpy`, or Blender Python at runtime.
+
+The current general-library branch keeps the accepted Strict V4 collapse engine
+as its baseline backend while separating the algorithm, file I/O, public API,
+Python binding, and CLI.
+
+## C++ API
+
+```cpp
+#include <meshutil/simplify.hpp>
+
+meshutil::SimplifyOptions options;
+options.target_faces = 1'000'000;
+meshutil::SimplifyResult result = meshutil::simplify(mesh.view(), options);
+```
+
+`MeshView` accepts float32 positions and uint32 triangle indices with explicit
+counts and byte strides. The input remains owned by the caller. `SimplifyResult`
+owns contiguous output arrays and reports topology decisions together with the
+core algorithm wall time.
+
+## Python API
+
+```python
+import meshutil
+
+out_vertices, out_faces, stats = meshutil.simplify(
+    vertices, faces, target_faces=1_000_000, threads=1
+)
+```
+
+The Python API accepts C-contiguous NumPy arrays with shapes `[N, 3]` and
+`[M, 3]`, dtypes `float32` and `uint32`. It releases the GIL during
+simplification.
 
 ## Implemented
 
@@ -37,7 +69,7 @@ needed by the strict binary triangle PLY pipeline.
 
 ## Build and Install
 
-From the repository root, build the Release binaries in `build/`:
+From the repository root, build the Release library and binaries in `build/`:
 
 ```bash
 ./build.sh
@@ -50,22 +82,44 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel
 ```
 
-To install both executables under a chosen prefix:
+To include the Python module:
+
+```bash
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DMESHUTIL_BUILD_PYTHON=ON
+cmake --build build --parallel
+```
+
+To install the C++ package, headers, CLI, and any enabled Python module:
 
 ```bash
 cmake --install build --prefix "$HOME/.local"
 ```
 
-This installs `standalone_decimator` and `standalone_batch_runner` in
-`$HOME/.local/bin`. CMake 3.16 or newer and a C++17 compiler are required to
-build the project. The only runtime dependency is the standard C++ library.
+Downstream CMake projects can use:
+
+```cmake
+find_package(MeshUtil CONFIG REQUIRED)
+target_link_libraries(my_target PRIVATE MeshUtil::meshutil)
+```
+
+To build and install a Python wheel:
+
+```bash
+python3 -m pip install .
+```
+
+CMake 3.16 or newer and a C++17 compiler are required. Python builds additionally
+require pybind11 and NumPy; wheel builds obtain pybind11 through the declared
+build dependencies.
 
 ## Run
 
 ```bash
-./build/standalone_decimator \
+./build/meshutil_simplify \
   --input /path/to/input.ply \
-  --output /path/to/output.ply \
+  --output /path/to/output.obj \
   --target-faces 3000000 \
   --trace /path/to/output.trace.jsonl
 ```
@@ -74,6 +128,11 @@ build the project. The only runtime dependency is the standard C++ library.
 are `0` for reaching the requested face count, `1` for processing/I/O failures,
 `2` for invalid CLI arguments, and `3` when no valid collapse remains before
 the target.
+
+The current format layer supports strict binary little-endian triangle PLY and
+geometry-only OBJ. OBJ polygon faces are triangulated with a fan. The legacy
+`standalone_decimator` executable remains available as a compatibility alias for
+`meshutil_simplify`.
 
 ## Continuous Batch Runner
 
