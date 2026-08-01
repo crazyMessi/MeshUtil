@@ -137,6 +137,21 @@ SimplifyStats copy_stats(const standalone_decimator::DecimatorStats &stats)
   result.partition_eligible_edge_fraction = stats.partition_eligible_edge_fraction;
   result.partition_wall_seconds = stats.partition_wall_seconds;
   result.partition_transient_bytes = stats.partition_transient_bytes;
+  result.partition_local_count = stats.partition_local_count;
+  result.partition_local_target_faces = stats.partition_local_target_faces;
+  result.partition_local_output_faces = stats.partition_local_output_faces;
+  result.partition_local_collapsed_edges = stats.partition_local_collapsed_edges;
+  result.partition_local_stalled_count = stats.partition_local_stalled_count;
+  result.partition_local_heap_entries = stats.partition_local_heap_entries;
+  result.partition_local_plan_seconds = stats.partition_local_plan_seconds;
+  result.partition_local_heap_build_seconds =
+      stats.partition_local_heap_build_seconds;
+  result.partition_local_collapse_seconds =
+      stats.partition_local_collapse_seconds;
+  result.global_cleanup_input_faces = stats.global_cleanup_input_faces;
+  result.global_cleanup_collapsed_edges = stats.global_cleanup_collapsed_edges;
+  result.global_heap_rebuild_seconds = stats.global_heap_rebuild_seconds;
+  result.global_cleanup_seconds = stats.global_cleanup_seconds;
   result.target_reached = stats.target_reached;
   return result;
 }
@@ -237,19 +252,44 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
     throw std::invalid_argument(
         "partition_dry_run_count must be 0, 16, 32, 64, or 128");
   }
+  if (!valid_partition_count(options.partition_local_count)) {
+    throw std::invalid_argument(
+        "partition_local_count must be 0, 16, 32, 64, or 128");
+  }
+  if (options.partition_local_count != 0 &&
+      (options.partition_local_target_faces < options.target_faces ||
+       options.partition_local_target_faces > mesh.triangle_count))
+  {
+    throw std::invalid_argument(
+        "partition_local_target_faces must be between target_faces and the input face count");
+  }
 
   const auto input_start = std::chrono::steady_clock::now();
   standalone_decimator::InputMesh input = copy_input(mesh);
   const auto input_end = std::chrono::steady_clock::now();
   const auto initialization_start = input_end;
+  const std::size_t internal_partition_local_target =
+      options.partition_local_count == 0 ?
+          0 :
+          effective_target(
+              mesh.triangle_count, options.partition_local_target_faces);
+  const bool run_partition_local =
+      options.partition_local_count != 0 &&
+      internal_partition_local_target < mesh.triangle_count;
   standalone_decimator::QemDecimator decimator(
-      std::move(input), internal_memory_mode(options.memory_mode));
+      std::move(input),
+      internal_memory_mode(options.memory_mode),
+      !run_partition_local);
   const auto initialization_end = std::chrono::steady_clock::now();
   decimator.partition_dry_run(options.partition_dry_run_count);
   const auto collapse_start = std::chrono::steady_clock::now();
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(mesh.triangle_count, options.target_faces);
+  internal_options.partition_local_count =
+      run_partition_local ? options.partition_local_count : 0;
+  internal_options.partition_local_target_faces =
+      run_partition_local ? internal_partition_local_target : 0;
   internal_options.memory_mode = internal_memory_mode(options.memory_mode);
   internal_options.trace_path = options.trace_path;
   const standalone_decimator::DecimatorStats internal_stats =
@@ -297,19 +337,43 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
     throw std::invalid_argument(
         "partition_dry_run_count must be 0, 16, 32, 64, or 128");
   }
+  if (!valid_partition_count(options.partition_local_count)) {
+    throw std::invalid_argument(
+        "partition_local_count must be 0, 16, 32, 64, or 128");
+  }
+  if (options.partition_local_count != 0 &&
+      (options.partition_local_target_faces < options.target_faces ||
+       options.partition_local_target_faces > input_faces))
+  {
+    throw std::invalid_argument(
+        "partition_local_target_faces must be between target_faces and the input face count");
+  }
 
   const auto input_start = std::chrono::steady_clock::now();
   standalone_decimator::InputMesh input = consume_input(std::move(mesh));
   const auto input_end = std::chrono::steady_clock::now();
   const auto initialization_start = input_end;
+  const std::size_t internal_partition_local_target =
+      options.partition_local_count == 0 ?
+          0 :
+          effective_target(input_faces, options.partition_local_target_faces);
+  const bool run_partition_local =
+      options.partition_local_count != 0 &&
+      internal_partition_local_target < input_faces;
   standalone_decimator::QemDecimator decimator(
-      std::move(input), internal_memory_mode(options.memory_mode));
+      std::move(input),
+      internal_memory_mode(options.memory_mode),
+      !run_partition_local);
   const auto initialization_end = std::chrono::steady_clock::now();
   decimator.partition_dry_run(options.partition_dry_run_count);
   const auto collapse_start = std::chrono::steady_clock::now();
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(input_faces, options.target_faces);
+  internal_options.partition_local_count =
+      run_partition_local ? options.partition_local_count : 0;
+  internal_options.partition_local_target_faces =
+      run_partition_local ? internal_partition_local_target : 0;
   internal_options.memory_mode = internal_memory_mode(options.memory_mode);
   internal_options.trace_path = options.trace_path;
   const standalone_decimator::DecimatorStats internal_stats =

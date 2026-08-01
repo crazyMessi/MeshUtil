@@ -19,6 +19,8 @@ struct Arguments {
   meshutil::MemoryMode memory_mode = meshutil::MemoryMode::Balanced;
   std::size_t target_faces = std::numeric_limits<std::size_t>::max();
   std::size_t partition_dry_run_count = 0;
+  std::size_t partition_local_count = 0;
+  std::size_t partition_local_target_faces = 0;
 };
 
 [[noreturn]] void usage_error(const std::string &message)
@@ -27,6 +29,8 @@ struct Arguments {
       message +
       "\nusage: standalone_decimator --input INPUT.ply --output OUTPUT.ply "
       "--target-faces COUNT [--partition-dry-run-count 16|32|64|128] "
+      "[--partition-local-count 16|32|64|128 "
+      "--partition-local-target-faces COUNT] "
       "[--memory-mode balanced|low] [--trace TRACE.jsonl]");
 }
 
@@ -58,6 +62,8 @@ Arguments parse_arguments(const int argc, char **argv)
       std::cout
           << "usage: standalone_decimator --input INPUT.ply --output OUTPUT.ply "
              "--target-faces COUNT [--partition-dry-run-count 16|32|64|128] "
+             "[--partition-local-count 16|32|64|128 "
+             "--partition-local-target-faces COUNT] "
              "[--memory-mode balanced|low] [--trace TRACE.jsonl]\n";
       std::exit(0);
     }
@@ -76,6 +82,12 @@ Arguments parse_arguments(const int argc, char **argv)
     }
     else if (option == "--partition-dry-run-count") {
       arguments.partition_dry_run_count = parse_count(value);
+    }
+    else if (option == "--partition-local-count") {
+      arguments.partition_local_count = parse_count(value);
+    }
+    else if (option == "--partition-local-target-faces") {
+      arguments.partition_local_target_faces = parse_count(value);
     }
     else if (option == "--trace") {
       arguments.trace = value;
@@ -121,6 +133,9 @@ int main(const int argc, char **argv)
     meshutil::SimplifyOptions options;
     options.target_faces = arguments.target_faces;
     options.partition_dry_run_count = arguments.partition_dry_run_count;
+    options.partition_local_count = arguments.partition_local_count;
+    options.partition_local_target_faces =
+        arguments.partition_local_target_faces;
     options.memory_mode = arguments.memory_mode;
     options.trace_path = arguments.trace;
     meshutil::SimplifyResult result = meshutil::simplify(std::move(input), options);
@@ -170,6 +185,30 @@ int main(const int argc, char **argv)
               << stats.partition_eligible_edge_fraction
               << ",\"partition_wall_seconds\":" << stats.partition_wall_seconds
               << ",\"partition_transient_bytes\":" << stats.partition_transient_bytes
+              << ",\"partition_local_count\":" << stats.partition_local_count
+              << ",\"partition_local_target_faces\":"
+              << stats.partition_local_target_faces
+              << ",\"partition_local_output_faces\":"
+              << stats.partition_local_output_faces
+              << ",\"partition_local_collapsed_edges\":"
+              << stats.partition_local_collapsed_edges
+              << ",\"partition_local_stalled_count\":"
+              << stats.partition_local_stalled_count
+              << ",\"partition_local_heap_entries\":"
+              << stats.partition_local_heap_entries
+              << ",\"partition_local_plan_seconds\":"
+              << stats.partition_local_plan_seconds
+              << ",\"partition_local_heap_build_seconds\":"
+              << stats.partition_local_heap_build_seconds
+              << ",\"partition_local_collapse_seconds\":"
+              << stats.partition_local_collapse_seconds
+              << ",\"global_cleanup_input_faces\":"
+              << stats.global_cleanup_input_faces
+              << ",\"global_cleanup_collapsed_edges\":"
+              << stats.global_cleanup_collapsed_edges
+              << ",\"global_heap_rebuild_seconds\":"
+              << stats.global_heap_rebuild_seconds
+              << ",\"global_cleanup_seconds\":" << stats.global_cleanup_seconds
               << ",\"input_conversion_seconds\":" << stats.input_conversion_seconds
               << ",\"initialization_seconds\":" << stats.initialization_seconds
               << ",\"collapse_seconds\":" << stats.collapse_seconds

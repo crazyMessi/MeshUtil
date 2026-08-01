@@ -48,6 +48,8 @@ void write_binary_triangle_ply_atomic(const std::string &path, const InputMesh &
 
 struct DecimatorOptions {
   std::size_t target_faces = 0;
+  std::size_t partition_local_count = 0;
+  std::size_t partition_local_target_faces = 0;
   MemoryMode memory_mode = MemoryMode::Balanced;
   std::string trace_path;
 };
@@ -82,12 +84,25 @@ struct DecimatorStats {
   double partition_eligible_edge_fraction = 0.0;
   double partition_wall_seconds = 0.0;
   std::size_t partition_transient_bytes = 0;
+  std::size_t partition_local_count = 0;
+  std::size_t partition_local_target_faces = 0;
+  std::size_t partition_local_output_faces = 0;
+  std::size_t partition_local_collapsed_edges = 0;
+  std::size_t partition_local_stalled_count = 0;
+  std::size_t partition_local_heap_entries = 0;
+  double partition_local_plan_seconds = 0.0;
+  double partition_local_heap_build_seconds = 0.0;
+  double partition_local_collapse_seconds = 0.0;
+  std::size_t global_cleanup_input_faces = 0;
+  std::size_t global_cleanup_collapsed_edges = 0;
+  double global_heap_rebuild_seconds = 0.0;
+  double global_cleanup_seconds = 0.0;
   bool target_reached = false;
 };
 
 class QemDecimator {
  public:
-  QemDecimator(InputMesh mesh, MemoryMode memory_mode);
+  QemDecimator(InputMesh mesh, MemoryMode memory_mode, bool build_global_heap);
   QemDecimator(const QemDecimator &) = delete;
   QemDecimator &operator=(const QemDecimator &) = delete;
   ~QemDecimator();

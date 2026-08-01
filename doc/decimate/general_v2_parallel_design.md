@@ -150,3 +150,41 @@ for `P = 16/32/64/128`:
 The dry-run must leave the output and serial SHA unchanged. A partition count is
 eligible for the local-collapse MVP only when load max/mean is at most 1.10 and
 the protected halo does not remove most candidate edges.
+
+## Single-worker local-heap behavior baseline
+
+The first behavior baseline uses the production topology in place:
+
+- one Morton ownership plan per epoch;
+- four graph rings for initial candidate eligibility;
+- a dynamic closed two-hop ownership check before every collapse;
+- one indexed heap reused sequentially across partitions;
+- largest-remainder local face-removal quotas;
+- one global heap rebuild and serial cleanup to the final target.
+
+The default path remains unchanged when `partition_local_count == 0`. On the
+formal seven-mesh corpus, the default path stayed 7/7 SHA-identical to the
+existing Blender baseline. The partition-local path performed 550,471 local
+collapses and passed 7/7 relative topology hard gates: no newly introduced
+zero-area face, nonmanifold edge, invalid index, repeated-index face, or
+isolated output vertex.
+
+For the fixed S case (17,944,222 faces to 3,000,000), using `P=128` and a
+3,200,000-face local target:
+
+- wall: 75.54 seconds;
+- peak RSS: 4.14 GiB;
+- partition plan: 6.73 seconds;
+- local heap build: 4.82 seconds;
+- local collapse: 48.39 seconds;
+- global heap rebuild: 1.14 seconds;
+- global cleanup: 0.69 seconds;
+- local collapses: 7,372,182;
+- cleanup collapses: 100,031;
+- final topology: zero zero-area faces, zero nonmanifold edges, zero isolated
+  vertices.
+
+This is approximately equal to the General V1 single-worker wall of 76.03
+seconds while moving most collapse work into independent persistent local
+queues. It is therefore accepted as the behavior baseline for multi-worker
+implementation, not yet as a final performance win.

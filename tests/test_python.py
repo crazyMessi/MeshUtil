@@ -52,6 +52,18 @@ def main():
     assert low_faces.shape[0] <= 6
     assert low_stats["target_reached"]
 
+    _, partition_faces, partition_stats = meshutil.simplify(
+        positions,
+        triangles,
+        6,
+        partition_local_count=16,
+        partition_local_target_faces=8,
+    )
+    assert partition_faces.shape[0] <= 6
+    assert partition_stats["partition_local_count"] == 16
+    assert partition_stats["global_cleanup_input_faces"] <= triangles.shape[0]
+    assert partition_stats["target_reached"]
+
     try:
         meshutil.simplify(positions.astype(np.float64), triangles, 6)
     except TypeError:

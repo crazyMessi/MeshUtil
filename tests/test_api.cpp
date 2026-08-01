@@ -36,6 +36,34 @@ meshutil::Mesh cube()
   return mesh;
 }
 
+meshutil::Mesh grid(const std::size_t side)
+{
+  meshutil::Mesh mesh;
+  mesh.positions.reserve(side * side * 3);
+  for (std::size_t y = 0; y < side; ++y) {
+    for (std::size_t x = 0; x < side; ++x) {
+      mesh.positions.push_back(static_cast<float>(x));
+      mesh.positions.push_back(static_cast<float>(y));
+      mesh.positions.push_back(0.0f);
+    }
+  }
+  mesh.triangles.reserve((side - 1) * (side - 1) * 6);
+  for (std::size_t y = 0; y + 1 < side; ++y) {
+    for (std::size_t x = 0; x + 1 < side; ++x) {
+      const meshutil::Index first =
+          static_cast<meshutil::Index>(y * side + x);
+      const meshutil::Index second = first + 1;
+      const meshutil::Index third =
+          static_cast<meshutil::Index>((y + 1) * side + x);
+      const meshutil::Index fourth = third + 1;
+      mesh.triangles.insert(
+          mesh.triangles.end(),
+          {first, second, fourth, first, fourth, third});
+    }
+  }
+  return mesh;
+}
+
 void require(const bool condition, const std::string &message)
 {
   if (!condition) {
@@ -130,5 +158,44 @@ int main()
   require(
       padded_result.mesh.triangles == result.mesh.triangles,
       "strided triangles changed the result");
+
+  const meshutil::Mesh grid_input = grid(64);
+  meshutil::SimplifyOptions partition_options;
+  partition_options.target_faces = 2000;
+  partition_options.partition_local_count = 16;
+  partition_options.partition_local_target_faces = 2400;
+  const meshutil::SimplifyResult partition_result =
+      meshutil::simplify(grid_input.view(), partition_options);
+  require(partition_result.stats.target_reached, "partition target was not reached");
+  require(
+      partition_result.stats.partition_local_count == 16,
+      "partition count was not reported");
+  require(
+      partition_result.stats.partition_local_collapsed_edges > 0,
+      "partition-local stage did not collapse any edge");
+  require(
+      partition_result.stats.global_cleanup_input_faces <
+          partition_result.stats.input_faces,
+      "global cleanup did not receive partition-local output");
+  require(
+      partition_result.mesh.triangle_count() <= partition_options.target_faces,
+      "partition path exceeded the target face count");
+  meshutil::validate_mesh(partition_result.mesh.view());
+
+  meshutil::SimplifyOptions skipped_partition_options = options;
+  skipped_partition_options.partition_local_count = 16;
+  skipped_partition_options.partition_local_target_faces =
+      input.triangle_count();
+  const meshutil::SimplifyResult skipped_partition_result =
+      meshutil::simplify(input.view(), skipped_partition_options);
+  require(
+      skipped_partition_result.stats.target_reached,
+      "skipped partition-local path did not reach the target");
+  require(
+      skipped_partition_result.mesh.positions == result.mesh.positions,
+      "skipped partition-local positions changed the default result");
+  require(
+      skipped_partition_result.mesh.triangles == result.mesh.triangles,
+      "skipped partition-local triangles changed the default result");
   return 0;
 }

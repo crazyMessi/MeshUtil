@@ -20,6 +20,19 @@ template<typename Value> class IndexedMinHeap {
     return heap_.empty();
   }
 
+  std::size_t size() const noexcept
+  {
+    return heap_.size();
+  }
+
+  void clear() noexcept
+  {
+    for (const Entry &entry : heap_) {
+      positions_[value_index(entry.value)] = kMissing;
+    }
+    heap_.clear();
+  }
+
   void reserve(const std::size_t capacity)
   {
     if (capacity > kMaxHeapSize) {

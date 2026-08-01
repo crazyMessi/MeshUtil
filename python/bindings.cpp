@@ -62,6 +62,23 @@ py::dict stats_dict(const meshutil::SimplifyStats &stats)
       stats.partition_eligible_edge_fraction;
   result["partition_wall_seconds"] = stats.partition_wall_seconds;
   result["partition_transient_bytes"] = stats.partition_transient_bytes;
+  result["partition_local_count"] = stats.partition_local_count;
+  result["partition_local_target_faces"] = stats.partition_local_target_faces;
+  result["partition_local_output_faces"] = stats.partition_local_output_faces;
+  result["partition_local_collapsed_edges"] =
+      stats.partition_local_collapsed_edges;
+  result["partition_local_stalled_count"] = stats.partition_local_stalled_count;
+  result["partition_local_heap_entries"] = stats.partition_local_heap_entries;
+  result["partition_local_plan_seconds"] = stats.partition_local_plan_seconds;
+  result["partition_local_heap_build_seconds"] =
+      stats.partition_local_heap_build_seconds;
+  result["partition_local_collapse_seconds"] =
+      stats.partition_local_collapse_seconds;
+  result["global_cleanup_input_faces"] = stats.global_cleanup_input_faces;
+  result["global_cleanup_collapsed_edges"] =
+      stats.global_cleanup_collapsed_edges;
+  result["global_heap_rebuild_seconds"] = stats.global_heap_rebuild_seconds;
+  result["global_cleanup_seconds"] = stats.global_cleanup_seconds;
   result["target_reached"] = stats.target_reached;
   result["input_conversion_seconds"] = stats.input_conversion_seconds;
   result["initialization_seconds"] = stats.initialization_seconds;
@@ -77,7 +94,9 @@ py::tuple simplify_arrays(const py::array &positions,
                           const std::size_t target_faces,
                           const unsigned threads,
                           const std::string &memory_mode,
-                          const std::size_t partition_dry_run_count)
+                          const std::size_t partition_dry_run_count,
+                          const std::size_t partition_local_count,
+                          const std::size_t partition_local_target_faces)
 {
   require_matrix(positions, py::dtype::of<float>(), "positions");
   require_matrix(triangles, py::dtype::of<meshutil::Index>(), "triangles");
@@ -94,6 +113,8 @@ py::tuple simplify_arrays(const py::array &positions,
   options.target_faces = target_faces;
   options.threads = threads;
   options.partition_dry_run_count = partition_dry_run_count;
+  options.partition_local_count = partition_local_count;
+  options.partition_local_target_faces = partition_local_target_faces;
   if (memory_mode == "balanced") {
     options.memory_mode = meshutil::MemoryMode::Balanced;
   }
@@ -138,5 +159,7 @@ PYBIND11_MODULE(meshutil, module)
       py::arg("threads") = 1,
       py::arg("memory_mode") = "balanced",
       py::arg("partition_dry_run_count") = 0,
+      py::arg("partition_local_count") = 0,
+      py::arg("partition_local_target_faces") = 0,
       "Simplify float32 positions and uint32 triangle indices.");
 }

@@ -38,6 +38,26 @@ The Python API accepts C-contiguous NumPy arrays with shapes `[N, 3]` and
 `[M, 3]`, dtypes `float32` and `uint32`. It releases the GIL during
 simplification.
 
+The experimental General V2 single-worker behavior baseline can run one
+partition-local epoch before global cleanup:
+
+```python
+out_vertices, out_faces, stats = meshutil.simplify(
+    vertices,
+    faces,
+    target_faces=3_000_000,
+    partition_local_count=128,
+    partition_local_target_faces=3_200_000,
+)
+```
+
+`partition_local_count` accepts `16`, `32`, `64`, or `128`.
+`partition_local_target_faces` must be between the final target and the input
+face count. The local epoch keeps the existing QEM collapse implementation,
+protects partition halos, then rebuilds one global heap for exact-target
+cleanup. This interface is currently single-worker; it is the behavior baseline
+for the next multi-worker implementation.
+
 ## Implemented
 
 - strict `binary_little_endian 1.0` PLY input and output;

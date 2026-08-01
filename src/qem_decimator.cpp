@@ -496,6 +496,15 @@ struct MortonVertex {
   std::uint32_t face_corner_degree = 0;
 };
 
+struct PartitionPlan {
+  std::size_t count = 0;
+  std::vector<std::uint16_t> owner;
+  std::vector<std::uint8_t> boundary_distance;
+  std::vector<std::size_t> core_face_counts;
+  std::vector<std::size_t> eligible_edge_offsets;
+  std::vector<EdgeId> eligible_edges;
+};
+
 std::uint32_t quantize_morton_axis(const float value,
                                    const float minimum,
                                    const float maximum) noexcept
@@ -577,7 +586,10 @@ class TraceWriter {
 
 class QemDecimator::Impl {
  public:
-  Impl(InputMesh mesh, const MemoryMode memory_mode) : memory_mode_(memory_mode)
+  Impl(InputMesh mesh,
+       const MemoryMode memory_mode,
+       const bool build_global_heap)
+      : memory_mode_(memory_mode)
   {
     if (mesh.vertices.size() > std::numeric_limits<VertexId>::max() ||
         mesh.faces.size() > std::numeric_limits<FaceId>::max() ||
@@ -625,8 +637,10 @@ class QemDecimator::Impl {
     build_vertex_normals();
     build_quadrics();
     heap_.prepare(edges_.size());
-    for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
-      update_edge_cost(edge_id);
+    if (build_global_heap) {
+      for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
+        update_edge_cost(edge_id);
+      }
     }
   }
 
@@ -833,21 +847,291 @@ class QemDecimator::Impl {
         std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
   }
 
-  DecimatorStats decimate(const DecimatorOptions &options)
+  PartitionPlan build_partition_plan(const std::size_t partition_count)
   {
-    if (options.target_faces > active_faces_) {
-      throw std::runtime_error("--target-faces cannot exceed the input face count");
-    }
-    TraceWriter trace(options.trace_path);
-    trace.event("header", [&](std::ostream &stream) {
-      stream << ",\"input_vertices\":" << input_vertices_ << ",\"input_faces\":" << input_faces_
-             << ",\"target_faces\":" << options.target_faces
-             << ",\"boundary_weight\":" << kBoundaryWeight
-             << ",\"optimize_epsilon\":" << kOptimizeEpsilon
-             << ",\"topology_fallback_epsilon\":" << kTopologyFallbackEpsilon;
-    });
+    PartitionPlan plan;
+    plan.count = partition_count;
+    const std::uint16_t invalid_owner = std::numeric_limits<std::uint16_t>::max();
+    const std::uint8_t outside_halo = std::numeric_limits<std::uint8_t>::max();
+    plan.owner.assign(vertices_.size(), invalid_owner);
+    plan.boundary_distance.assign(vertices_.size(), outside_halo);
+    plan.core_face_counts.assign(partition_count, 0);
 
-    while (active_faces_ > options.target_faces && !heap_.empty()) {
+    Float3 bounds_minimum;
+    Float3 bounds_maximum;
+    bool have_bounds = false;
+    std::size_t alive_vertices = 0;
+    for (const Vertex &vertex : vertices_) {
+      if (!vertex.alive) {
+        continue;
+      }
+      ++alive_vertices;
+      if (!have_bounds) {
+        bounds_minimum = vertex.position;
+        bounds_maximum = vertex.position;
+        have_bounds = true;
+        continue;
+      }
+      bounds_minimum.x = std::min(bounds_minimum.x, vertex.position.x);
+      bounds_minimum.y = std::min(bounds_minimum.y, vertex.position.y);
+      bounds_minimum.z = std::min(bounds_minimum.z, vertex.position.z);
+      bounds_maximum.x = std::max(bounds_maximum.x, vertex.position.x);
+      bounds_maximum.y = std::max(bounds_maximum.y, vertex.position.y);
+      bounds_maximum.z = std::max(bounds_maximum.z, vertex.position.z);
+    }
+
+    std::vector<MortonVertex> morton_vertices;
+    morton_vertices.reserve(alive_vertices);
+    std::uint64_t total_face_corner_load = 0;
+    for (VertexId vertex_id = 0; vertex_id < vertices_.size(); ++vertex_id) {
+      const Vertex &vertex = vertices_[vertex_id];
+      if (!vertex.alive) {
+        continue;
+      }
+      const std::size_t degree = vertex_face_count(vertex_id);
+      if (degree > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error("vertex face-corner degree exceeds uint32 capacity");
+      }
+      morton_vertices.push_back({
+          morton_code_21(vertex.position, bounds_minimum, bounds_maximum),
+          vertex_id,
+          static_cast<std::uint32_t>(degree),
+      });
+      total_face_corner_load += degree;
+    }
+    std::sort(
+        morton_vertices.begin(),
+        morton_vertices.end(),
+        [](const MortonVertex &left, const MortonVertex &right) {
+          if (left.morton != right.morton) {
+            return left.morton < right.morton;
+          }
+          return left.vertex < right.vertex;
+        });
+
+    std::uint64_t load_prefix = 0;
+    for (std::size_t index = 0; index < morton_vertices.size(); ++index) {
+      const MortonVertex &entry = morton_vertices[index];
+      std::size_t partition = 0;
+      if (total_face_corner_load != 0) {
+        const std::uint64_t midpoint_twice =
+            load_prefix * 2 + entry.face_corner_degree;
+        partition = static_cast<std::size_t>(
+            midpoint_twice * partition_count / (total_face_corner_load * 2));
+        partition = std::min(partition, partition_count - 1);
+      }
+      else {
+        partition = index * partition_count /
+                    std::max<std::size_t>(1, morton_vertices.size());
+      }
+      plan.owner[entry.vertex] = static_cast<std::uint16_t>(partition);
+      load_prefix += entry.face_corner_degree;
+    }
+
+    for (const Edge &edge : edges_) {
+      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+        continue;
+      }
+      if (plan.owner[edge.first] != plan.owner[edge.second]) {
+        plan.boundary_distance[edge.first] = 0;
+        plan.boundary_distance[edge.second] = 0;
+      }
+    }
+    for (std::uint8_t ring = 1; ring <= 4; ++ring) {
+      for (const Edge &edge : edges_) {
+        if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+          continue;
+        }
+        const bool first_frontier =
+            plan.boundary_distance[edge.first] == ring - 1;
+        const bool second_frontier =
+            plan.boundary_distance[edge.second] == ring - 1;
+        if (first_frontier && plan.boundary_distance[edge.second] > ring) {
+          plan.boundary_distance[edge.second] = ring;
+        }
+        if (second_frontier && plan.boundary_distance[edge.first] > ring) {
+          plan.boundary_distance[edge.first] = ring;
+        }
+      }
+    }
+
+    for (const Face &face : faces_) {
+      if (!face.alive) {
+        continue;
+      }
+      const std::uint16_t owner = plan.owner[face.vertices[0]];
+      if (owner != invalid_owner &&
+          plan.owner[face.vertices[1]] == owner &&
+          plan.owner[face.vertices[2]] == owner &&
+          plan.boundary_distance[face.vertices[0]] > 2 &&
+          plan.boundary_distance[face.vertices[1]] > 2 &&
+          plan.boundary_distance[face.vertices[2]] > 2)
+      {
+        ++plan.core_face_counts[owner];
+      }
+    }
+
+    plan.eligible_edge_offsets.assign(partition_count + 1, 0);
+    for (const Edge &edge : edges_) {
+      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+        continue;
+      }
+      const std::uint16_t owner = plan.owner[edge.first];
+      if (owner != invalid_owner && plan.owner[edge.second] == owner &&
+          plan.boundary_distance[edge.first] > 4 &&
+          plan.boundary_distance[edge.second] > 4)
+      {
+        ++plan.eligible_edge_offsets[static_cast<std::size_t>(owner) + 1];
+      }
+    }
+    for (std::size_t partition = 0; partition < partition_count; ++partition) {
+      plan.eligible_edge_offsets[partition + 1] +=
+          plan.eligible_edge_offsets[partition];
+    }
+    plan.eligible_edges.resize(plan.eligible_edge_offsets.back());
+    std::vector<std::size_t> write_offsets = plan.eligible_edge_offsets;
+    for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
+      const Edge &edge = edges_[edge_id];
+      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+        continue;
+      }
+      const std::uint16_t owner = plan.owner[edge.first];
+      if (owner != invalid_owner && plan.owner[edge.second] == owner &&
+          plan.boundary_distance[edge.first] > 4 &&
+          plan.boundary_distance[edge.second] > 4)
+      {
+        plan.eligible_edges[write_offsets[owner]++] = edge_id;
+      }
+    }
+    return plan;
+  }
+
+  std::vector<std::size_t> allocate_partition_removals(
+      const PartitionPlan &plan,
+      const std::size_t total_removals) const
+  {
+    std::vector<std::size_t> result(plan.count, 0);
+    std::size_t total_weight = 0;
+    for (const std::size_t weight : plan.core_face_counts) {
+      total_weight += weight;
+    }
+    if (total_weight == 0 || total_removals == 0) {
+      return result;
+    }
+
+    struct Remainder {
+      std::uint64_t value = 0;
+      std::size_t partition = 0;
+    };
+    std::vector<Remainder> remainders;
+    remainders.reserve(plan.count);
+    std::size_t allocated = 0;
+    for (std::size_t partition = 0; partition < plan.count; ++partition) {
+      const std::uint64_t product =
+          static_cast<std::uint64_t>(total_removals) *
+          static_cast<std::uint64_t>(plan.core_face_counts[partition]);
+      result[partition] = static_cast<std::size_t>(product / total_weight);
+      allocated += result[partition];
+      remainders.push_back({
+          product % static_cast<std::uint64_t>(total_weight),
+          partition,
+      });
+    }
+    std::sort(
+        remainders.begin(),
+        remainders.end(),
+        [](const Remainder &left, const Remainder &right) {
+          if (left.value != right.value) {
+            return left.value > right.value;
+          }
+          return left.partition < right.partition;
+        });
+    for (std::size_t index = 0;
+         allocated < total_removals && index < remainders.size();
+         ++index, ++allocated)
+    {
+      ++result[remainders[index].partition];
+    }
+    return result;
+  }
+
+  bool local_vertex_allowed(const VertexId vertex) const noexcept
+  {
+    return local_owner_ != nullptr && local_boundary_distance_ != nullptr &&
+           vertex < local_owner_->size() &&
+           (*local_owner_)[vertex] == active_partition_ &&
+           (*local_boundary_distance_)[vertex] > 2;
+  }
+
+  bool local_edge_static_allowed(const EdgeId edge_id) const noexcept
+  {
+    if (local_owner_ == nullptr) {
+      return true;
+    }
+    if (edge_id >= edges_.size()) {
+      return false;
+    }
+    const Edge &edge = edges_[edge_id];
+    return edge.alive &&
+           (*local_owner_)[edge.first] == active_partition_ &&
+           (*local_owner_)[edge.second] == active_partition_ &&
+           (*local_boundary_distance_)[edge.first] > 4 &&
+           (*local_boundary_distance_)[edge.second] > 4;
+  }
+
+  bool local_edge_dynamic_allowed(const EdgeId edge_id) const
+  {
+    if (local_owner_ == nullptr) {
+      return true;
+    }
+    if (!local_edge_static_allowed(edge_id)) {
+      return false;
+    }
+    const Edge &edge = edges_[edge_id];
+    for (const VertexId endpoint : {edge.first, edge.second}) {
+      if (!local_vertex_allowed(endpoint)) {
+        return false;
+      }
+      const EdgeId disk_head = vertices_[endpoint].disk_head;
+      if (disk_head == kInvalidEdgeId) {
+        return false;
+      }
+      EdgeId incident_id = disk_head;
+      do {
+        const Edge &incident = edges_[incident_id];
+        const VertexId neighbor =
+            incident.first == endpoint ? incident.second : incident.first;
+        if (!local_vertex_allowed(neighbor)) {
+          return false;
+        }
+        const EdgeId neighbor_head = vertices_[neighbor].disk_head;
+        if (neighbor_head == kInvalidEdgeId) {
+          return false;
+        }
+        EdgeId neighbor_edge_id = neighbor_head;
+        do {
+          const Edge &neighbor_edge = edges_[neighbor_edge_id];
+          const VertexId second_neighbor =
+              neighbor_edge.first == neighbor ?
+                  neighbor_edge.second :
+                  neighbor_edge.first;
+          if (!local_vertex_allowed(second_neighbor)) {
+            return false;
+          }
+          neighbor_edge_id = disk_edge_next(neighbor_edge_id, neighbor);
+        } while (neighbor_edge_id != neighbor_head);
+        incident_id = disk_edge_next(incident_id, endpoint);
+      } while (incident_id != disk_head);
+    }
+    return true;
+  }
+
+  std::size_t collapse_from_active_heap(const std::size_t target_faces,
+                                        const std::size_t removal_limit,
+                                        TraceWriter &trace)
+  {
+    const std::size_t start_faces = active_faces_;
+    while (active_faces_ > target_faces && !heap_.empty()) {
       const IndexedMinHeap<EdgeId>::Entry candidate = heap_.pop();
       if (candidate.key >= kInvalidCost) {
         trace.event("stopped", [&](std::ostream &stream) {
@@ -866,6 +1150,13 @@ class QemDecimator::Impl {
         set_invalid_edge(candidate.value);
         continue;
       }
+      const std::size_t removed_so_far = start_faces - active_faces_;
+      if (faces_removed > removal_limit - std::min(removal_limit, removed_so_far)) {
+        continue;
+      }
+      if (!local_edge_dynamic_allowed(candidate.value)) {
+        continue;
+      }
 
       const Vec3 target = calculate_collapse_target(edge);
       trace.event("candidate", [&](std::ostream &stream) {
@@ -879,7 +1170,8 @@ class QemDecimator::Impl {
         ++stats_.rejected_topology;
         set_invalid_edge(candidate.value);
         trace.event("reject", [&](std::ostream &stream) {
-          stream << ",\"edge\":" << candidate.value << ",\"reason\":\"degenerate_topology\"";
+          stream << ",\"edge\":" << candidate.value
+                 << ",\"reason\":\"degenerate_topology\"";
         });
         continue;
       }
@@ -887,7 +1179,8 @@ class QemDecimator::Impl {
         ++stats_.rejected_flip;
         set_invalid_edge(candidate.value);
         trace.event("reject", [&](std::ostream &stream) {
-          stream << ",\"edge\":" << candidate.value << ",\"reason\":\"degenerate_flip\"";
+          stream << ",\"edge\":" << candidate.value
+                 << ",\"reason\":\"degenerate_flip\"";
         });
         continue;
       }
@@ -895,10 +1188,113 @@ class QemDecimator::Impl {
       collapse_edge(candidate.value, target);
       ++stats_.collapsed_edges;
       trace.event("collapse", [&](std::ostream &stream) {
-        stream << ",\"edge\":" << candidate.value << ",\"removed_faces\":" << faces_removed
+        stream << ",\"edge\":" << candidate.value
+               << ",\"removed_faces\":" << faces_removed
                << ",\"faces_after\":" << active_faces_;
       });
+      if (start_faces - active_faces_ >= removal_limit) {
+        break;
+      }
     }
+    return start_faces - active_faces_;
+  }
+
+  void run_partition_local_stage(const DecimatorOptions &options,
+                                 TraceWriter &trace)
+  {
+    stats_.partition_local_count = options.partition_local_count;
+    stats_.partition_local_target_faces = options.partition_local_target_faces;
+    const auto plan_start = std::chrono::steady_clock::now();
+    PartitionPlan plan = build_partition_plan(options.partition_local_count);
+    const std::size_t total_removals =
+        active_faces_ > options.partition_local_target_faces ?
+            active_faces_ - options.partition_local_target_faces :
+            0;
+    const std::vector<std::size_t> quotas =
+        allocate_partition_removals(plan, total_removals);
+    stats_.partition_local_plan_seconds =
+        std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - plan_start)
+            .count();
+
+    heap_.clear();
+    local_owner_ = &plan.owner;
+    local_boundary_distance_ = &plan.boundary_distance;
+    for (std::size_t partition = 0; partition < plan.count; ++partition) {
+      active_partition_ = static_cast<std::uint16_t>(partition);
+      const auto build_start = std::chrono::steady_clock::now();
+      for (std::size_t index = plan.eligible_edge_offsets[partition];
+           index < plan.eligible_edge_offsets[partition + 1];
+           ++index)
+      {
+        update_edge_cost(plan.eligible_edges[index]);
+      }
+      stats_.partition_local_heap_entries += heap_.size();
+      stats_.partition_local_heap_build_seconds +=
+          std::chrono::duration<double>(
+              std::chrono::steady_clock::now() - build_start)
+              .count();
+
+      const std::size_t partition_start_faces = active_faces_;
+      const auto collapse_start = std::chrono::steady_clock::now();
+      collapse_from_active_heap(
+          options.partition_local_target_faces, quotas[partition], trace);
+      stats_.partition_local_collapse_seconds +=
+          std::chrono::duration<double>(
+              std::chrono::steady_clock::now() - collapse_start)
+              .count();
+      const std::size_t removed = partition_start_faces - active_faces_;
+      if (removed < quotas[partition]) {
+        ++stats_.partition_local_stalled_count;
+      }
+      heap_.clear();
+    }
+    local_owner_ = nullptr;
+    local_boundary_distance_ = nullptr;
+    active_partition_ = std::numeric_limits<std::uint16_t>::max();
+    stats_.partition_local_output_faces = active_faces_;
+    stats_.partition_local_collapsed_edges = stats_.collapsed_edges;
+
+    const auto rebuild_start = std::chrono::steady_clock::now();
+    for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
+      update_edge_cost(edge_id);
+    }
+    stats_.global_heap_rebuild_seconds =
+        std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - rebuild_start)
+            .count();
+  }
+
+  DecimatorStats decimate(const DecimatorOptions &options)
+  {
+    if (options.target_faces > active_faces_) {
+      throw std::runtime_error("--target-faces cannot exceed the input face count");
+    }
+    TraceWriter trace(options.trace_path);
+    trace.event("header", [&](std::ostream &stream) {
+      stream << ",\"input_vertices\":" << input_vertices_ << ",\"input_faces\":" << input_faces_
+             << ",\"target_faces\":" << options.target_faces
+             << ",\"boundary_weight\":" << kBoundaryWeight
+             << ",\"optimize_epsilon\":" << kOptimizeEpsilon
+             << ",\"topology_fallback_epsilon\":" << kTopologyFallbackEpsilon;
+    });
+
+    if (options.partition_local_count != 0 &&
+        active_faces_ > options.partition_local_target_faces)
+    {
+      run_partition_local_stage(options, trace);
+    }
+    stats_.global_cleanup_input_faces = active_faces_;
+    const std::size_t cleanup_start_collapses = stats_.collapsed_edges;
+    const auto cleanup_start = std::chrono::steady_clock::now();
+    collapse_from_active_heap(
+        options.target_faces, std::numeric_limits<std::size_t>::max(), trace);
+    stats_.global_cleanup_seconds =
+        std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - cleanup_start)
+            .count();
+    stats_.global_cleanup_collapsed_edges =
+        stats_.collapsed_edges - cleanup_start_collapses;
 
     stats_.input_vertices = input_vertices_;
     stats_.input_faces = input_faces_;
@@ -1630,6 +2026,10 @@ class QemDecimator::Impl {
       heap_.remove(edge_id);
       return;
     }
+    if (!local_edge_static_allowed(edge_id)) {
+      heap_.remove(edge_id);
+      return;
+    }
     const std::size_t face_count = edge_face_count(edge_id);
     if (face_count == 0 || face_count > 2) {
       heap_.remove(edge_id);
@@ -1879,6 +2279,9 @@ class QemDecimator::Impl {
   std::vector<LoopId> loop_scratch_;
   std::vector<std::pair<EdgeId, EdgeId>> splice_edges_scratch_;
   IndexedMinHeap<EdgeId> heap_;
+  const std::vector<std::uint16_t> *local_owner_ = nullptr;
+  const std::vector<std::uint8_t> *local_boundary_distance_ = nullptr;
+  std::uint16_t active_partition_ = std::numeric_limits<std::uint16_t>::max();
   std::size_t active_faces_ = 0;
   std::size_t input_vertices_ = 0;
   std::size_t input_faces_ = 0;
@@ -1886,8 +2289,10 @@ class QemDecimator::Impl {
   DecimatorStats stats_;
 };
 
-QemDecimator::QemDecimator(InputMesh mesh, const MemoryMode memory_mode)
-    : impl_(new Impl(std::move(mesh), memory_mode))
+QemDecimator::QemDecimator(InputMesh mesh,
+                           const MemoryMode memory_mode,
+                           const bool build_global_heap)
+    : impl_(new Impl(std::move(mesh), memory_mode, build_global_heap))
 {}
 
 QemDecimator::~QemDecimator()

@@ -16,6 +16,8 @@ struct SimplifyOptions {
   std::size_t target_faces = 0;
   unsigned threads = 1;
   std::size_t partition_dry_run_count = 0;
+  std::size_t partition_local_count = 0;
+  std::size_t partition_local_target_faces = 0;
   MemoryMode memory_mode = MemoryMode::Balanced;
   std::string trace_path;
 };
@@ -50,6 +52,19 @@ struct SimplifyStats {
   double partition_eligible_edge_fraction = 0.0;
   double partition_wall_seconds = 0.0;
   std::size_t partition_transient_bytes = 0;
+  std::size_t partition_local_count = 0;
+  std::size_t partition_local_target_faces = 0;
+  std::size_t partition_local_output_faces = 0;
+  std::size_t partition_local_collapsed_edges = 0;
+  std::size_t partition_local_stalled_count = 0;
+  std::size_t partition_local_heap_entries = 0;
+  double partition_local_plan_seconds = 0.0;
+  double partition_local_heap_build_seconds = 0.0;
+  double partition_local_collapse_seconds = 0.0;
+  std::size_t global_cleanup_input_faces = 0;
+  std::size_t global_cleanup_collapsed_edges = 0;
+  double global_heap_rebuild_seconds = 0.0;
+  double global_cleanup_seconds = 0.0;
   bool target_reached = false;
   double input_conversion_seconds = 0.0;
   double initialization_seconds = 0.0;
