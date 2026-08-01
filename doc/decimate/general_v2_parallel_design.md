@@ -64,3 +64,89 @@ General V2 must therefore avoid repeated global-heap round trips. The next
 parallel design should use persistent spatial or graph partitions with local
 candidate queues, protect partition boundaries during local collapse, then run
 a global cleanup pass.
+
+## Selected design: persistent partition-local QEM
+
+The selected next design does not split or duplicate submeshes. It keeps the
+existing stable vertex, edge, face, and loop IDs, and assigns ownership over the
+existing topology:
+
+1. Stable-sort alive vertices by a 63-bit Morton code, with `VertexId` as the
+   tie-break.
+2. Assign partition owners by the prefix sum of active face-corner weights,
+   rather than by uniform spatial cell width.
+3. Mark cross-partition edge endpoints, then expand a protected halo by two
+   graph rings.
+4. Place only same-owner, non-halo edges in persistent partition-local heaps.
+5. Run the original serial QEM collapse loop inside each partition while
+   different partitions execute concurrently.
+6. Use fixed per-partition face-removal quotas and barrier-level repartitioning.
+7. Rebuild a global heap once at the end and run the existing serial cleanup to
+   the exact target.
+
+Partition count is fixed by the reduction stage, not by worker count, so the
+same partition schedule should produce the same output at 2/4/8/16/32 workers.
+The initial S-mesh schedule to evaluate is:
+
+| Final target | Partition schedule | Last local-stage target |
+| ---: | --- | ---: |
+| 3M | 128 | 3.2M |
+| 1M | 128 → 64 | 1.10M |
+| 0.3M | 128 → 64 → 16 | 0.36M |
+
+Artificial partition boundaries must not receive boundary quadrics. They are
+scheduling constraints, not geometric boundaries.
+
+### Partition ownership
+
+- Vertex owner remains fixed within an epoch.
+- An edge is local only when both endpoint owners match.
+- A face is local-core only when all three owners match and no vertex is in the
+  protected halo.
+- A candidate must have both endpoints and their closed two-hop neighborhoods
+  inside the same unprotected core.
+
+This guarantees disjoint disk/radial/face/heap write sets between simultaneously
+running partitions without per-edge locks.
+
+### Local targets and cleanup
+
+For an epoch with current face count `F`, local-stage target `G`, and local-core
+face counts `L_p`, allocate removal quotas using largest remainder:
+
+`R_p = floor((F - G) * L_p / sum(L_p))`.
+
+Ties use partition ID. Workers never steal quota during an epoch. Unfilled
+one-face gaps and deferred boundary edges are handled by the final global
+cleanup. Cleanup and repartition barriers are the only global coordination
+points.
+
+### Memory constraints
+
+The implementation must reuse one global edge-entry storage and one
+`EdgeId → position` array across all local heaps. It must not allocate:
+
+- a complete topology stamp array per worker;
+- a complete heap-position array per partition;
+- copied vertex/face/loop arrays per partition;
+- physically cut submeshes that later require welding.
+
+For the 17.9M-face S mesh, the planned owner/flag, reject bitmap, Morton keys,
+IDs, and radix-sort buffers should keep the partitioning transient below roughly
+0.3 GiB.
+
+## Dry-run gate
+
+Before changing collapse behavior, implement a partition dry-run that reports
+for `P = 16/32/64/128`:
+
+- partition face-corner load min/mean/max and max/mean ratio;
+- cross-partition edge count and fraction;
+- protected halo vertex and face count/fraction;
+- locally eligible edge count/fraction after the dynamic two-hop rule;
+- estimated local heap entries per partition;
+- Morton partitioning wall time and transient bytes.
+
+The dry-run must leave the output and serial SHA unchanged. A partition count is
+eligible for the local-collapse MVP only when load max/mean is at most 1.10 and
+the protected halo does not remove most candidate edges.
