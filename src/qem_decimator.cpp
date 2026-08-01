@@ -306,7 +306,6 @@ struct Edge {
 
 struct Face {
   std::array<VertexId, 3> vertices{};
-  Float3 normal;
   bool alive = true;
 };
 
@@ -549,7 +548,6 @@ class QemDecimator::Impl {
     for (const std::array<VertexId, 3> &face_vertices : mesh.faces) {
       Face face;
       face.vertices = face_vertices;
-      face.normal = calculate_face_normal(face);
       faces_.push_back(face);
     }
     active_faces_ = faces_.size();
@@ -765,7 +763,7 @@ class QemDecimator::Impl {
 
   void build_quadrics()
   {
-    for (Face &face : faces_) {
+    for (const Face &face : faces_) {
       Float3 center;
       for (const VertexId vertex : face.vertices) {
         const Float3 position = to_float3(vertices_[vertex].position);
@@ -778,7 +776,7 @@ class QemDecimator::Impl {
       center.y *= center_scale;
       center.z *= center_scale;
 
-      const Float3 face_normal = face.normal;
+      const Float3 face_normal = calculate_face_normal(face);
       const double normal_x = static_cast<double>(face_normal.x);
       const double normal_y = static_cast<double>(face_normal.y);
       const double normal_z = static_cast<double>(face_normal.z);
@@ -798,12 +796,13 @@ class QemDecimator::Impl {
       if (!edge.alive || edge_face_count(edge_id) != 1) {
         continue;
       }
-      const Face &face = faces_[loop_face(edge.radial_head)];
+      const Float3 face_normal =
+          calculate_face_normal(faces_[loop_face(edge.radial_head)]);
       const Float3 first_position = to_float3(vertices_[edge.first].position);
       const Float3 second_position = to_float3(vertices_[edge.second].position);
       const Float3 edge_vector = subtract_float3(second_position, first_position);
       const Float3 edge_plane =
-          cross_float3(edge_vector, face.normal);
+          cross_float3(edge_vector, face_normal);
       Vec3 boundary_normal = to_vec3(edge_plane);
       const double boundary_length = length(boundary_normal);
       if (!(boundary_length > static_cast<double>(FLT_EPSILON))) {
