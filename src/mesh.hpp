@@ -3,7 +3,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -19,20 +18,14 @@ struct Vec3 {
   double z = 0.0;
 
   Vec3 &operator+=(const Vec3 &other) noexcept;
-  Vec3 &operator-=(const Vec3 &other) noexcept;
   Vec3 &operator*=(double scalar) noexcept;
 };
 
 Vec3 operator+(Vec3 left, const Vec3 &right) noexcept;
-Vec3 operator-(Vec3 left, const Vec3 &right) noexcept;
 Vec3 operator*(Vec3 value, double scalar) noexcept;
-Vec3 operator*(double scalar, Vec3 value) noexcept;
-Vec3 operator/(Vec3 value, double scalar) noexcept;
 double dot(const Vec3 &left, const Vec3 &right) noexcept;
-Vec3 cross(const Vec3 &left, const Vec3 &right) noexcept;
 double length_squared(const Vec3 &value) noexcept;
 double length(const Vec3 &value) noexcept;
-Vec3 normalized_or_zero(const Vec3 &value) noexcept;
 
 struct InputMesh {
   std::vector<Vec3> vertices;

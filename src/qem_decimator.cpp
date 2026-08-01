@@ -29,14 +29,6 @@ Vec3 &Vec3::operator+=(const Vec3 &other) noexcept
   return *this;
 }
 
-Vec3 &Vec3::operator-=(const Vec3 &other) noexcept
-{
-  x -= other.x;
-  y -= other.y;
-  z -= other.z;
-  return *this;
-}
-
 Vec3 &Vec3::operator*=(const double scalar) noexcept
 {
   x *= scalar;
@@ -51,42 +43,15 @@ Vec3 operator+(Vec3 left, const Vec3 &right) noexcept
   return left;
 }
 
-Vec3 operator-(Vec3 left, const Vec3 &right) noexcept
-{
-  left -= right;
-  return left;
-}
-
 Vec3 operator*(Vec3 value, const double scalar) noexcept
 {
   value *= scalar;
   return value;
 }
 
-Vec3 operator*(const double scalar, Vec3 value) noexcept
-{
-  value *= scalar;
-  return value;
-}
-
-Vec3 operator/(Vec3 value, const double scalar) noexcept
-{
-  value *= 1.0 / scalar;
-  return value;
-}
-
 double dot(const Vec3 &left, const Vec3 &right) noexcept
 {
   return left.x * right.x + left.y * right.y + left.z * right.z;
-}
-
-Vec3 cross(const Vec3 &left, const Vec3 &right) noexcept
-{
-  return {
-      left.y * right.z - left.z * right.y,
-      left.z * right.x - left.x * right.z,
-      left.x * right.y - left.y * right.x,
-  };
 }
 
 double length_squared(const Vec3 &value) noexcept
@@ -97,15 +62,6 @@ double length_squared(const Vec3 &value) noexcept
 double length(const Vec3 &value) noexcept
 {
   return std::sqrt(length_squared(value));
-}
-
-Vec3 normalized_or_zero(const Vec3 &value) noexcept
-{
-  const double magnitude = length(value);
-  if (magnitude <= static_cast<double>(FLT_EPSILON)) {
-    return {};
-  }
-  return value / magnitude;
 }
 
 namespace {

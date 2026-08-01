@@ -20,11 +20,6 @@ template<typename Value> class IndexedMinHeap {
     return heap_.empty();
   }
 
-  std::size_t size() const noexcept
-  {
-    return heap_.size();
-  }
-
   void reserve(const std::size_t capacity)
   {
     if (capacity > kMaxHeapSize) {
@@ -44,25 +39,6 @@ template<typename Value> class IndexedMinHeap {
   {
     reserve(value_count);
     reserve_values(value_count);
-  }
-
-  bool contains(const Value value) const noexcept
-  {
-    const std::size_t index = value_index(value);
-    return index < positions_.size() && positions_[index] != kMissing;
-  }
-
-  const Entry &top() const
-  {
-    if (heap_.empty()) {
-      throw std::runtime_error("top() called on an empty indexed heap");
-    }
-    return heap_.front();
-  }
-
-  void insert(const Value value, const float key)
-  {
-    insert_at_index(value, key, value_index(value));
   }
 
   void update(const Value value, const float key)
@@ -115,12 +91,6 @@ template<typename Value> class IndexedMinHeap {
       throw std::runtime_error("pop() called on an empty indexed heap");
     }
     return pop_min();
-  }
-
-  void clear() noexcept
-  {
-    heap_.clear();
-    positions_.clear();
   }
 
  private:

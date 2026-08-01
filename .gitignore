@@ -1,3 +1,4 @@
 build/
+temp_output/
 *.o
 *.obj
