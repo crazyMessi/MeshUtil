@@ -8,6 +8,11 @@
 
 namespace standalone_decimator {
 
+enum class MemoryMode {
+  Balanced,
+  Low,
+};
+
 using VertexId = std::uint32_t;
 using EdgeId = std::uint32_t;
 using FaceId = std::uint32_t;
@@ -43,6 +48,7 @@ void write_binary_triangle_ply_atomic(const std::string &path, const InputMesh &
 
 struct DecimatorOptions {
   std::size_t target_faces = 0;
+  MemoryMode memory_mode = MemoryMode::Balanced;
   std::string trace_path;
 };
 
@@ -60,7 +66,7 @@ struct DecimatorStats {
 
 class QemDecimator {
  public:
-  explicit QemDecimator(InputMesh mesh);
+  QemDecimator(InputMesh mesh, MemoryMode memory_mode);
   QemDecimator(const QemDecimator &) = delete;
   QemDecimator &operator=(const QemDecimator &) = delete;
   ~QemDecimator();

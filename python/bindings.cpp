@@ -49,7 +49,8 @@ py::dict stats_dict(const meshutil::SimplifyStats &stats)
 py::tuple simplify_arrays(const py::array &positions,
                           const py::array &triangles,
                           const std::size_t target_faces,
-                          const unsigned threads)
+                          const unsigned threads,
+                          const std::string &memory_mode)
 {
   require_matrix(positions, py::dtype::of<float>(), "positions");
   require_matrix(triangles, py::dtype::of<meshutil::Index>(), "triangles");
@@ -65,6 +66,15 @@ py::tuple simplify_arrays(const py::array &positions,
   meshutil::SimplifyOptions options;
   options.target_faces = target_faces;
   options.threads = threads;
+  if (memory_mode == "balanced") {
+    options.memory_mode = meshutil::MemoryMode::Balanced;
+  }
+  else if (memory_mode == "low") {
+    options.memory_mode = meshutil::MemoryMode::Low;
+  }
+  else {
+    throw py::value_error("memory_mode must be 'balanced' or 'low'");
+  }
 
   meshutil::SimplifyResult result;
   {
@@ -98,5 +108,6 @@ PYBIND11_MODULE(meshutil, module)
       py::arg("triangles"),
       py::arg("target_faces"),
       py::arg("threads") = 1,
+      py::arg("memory_mode") = "balanced",
       "Simplify float32 positions and uint32 triangle indices.");
 }

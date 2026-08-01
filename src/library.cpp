@@ -119,6 +119,12 @@ SimplifyStats copy_stats(const standalone_decimator::DecimatorStats &stats)
   return result;
 }
 
+standalone_decimator::MemoryMode internal_memory_mode(const MemoryMode mode)
+{
+  return mode == MemoryMode::Low ? standalone_decimator::MemoryMode::Low :
+                                   standalone_decimator::MemoryMode::Balanced;
+}
+
 }  // namespace
 
 void validate_mesh(const MeshView mesh)
@@ -205,11 +211,13 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   standalone_decimator::InputMesh input = copy_input(mesh);
   const auto input_end = std::chrono::steady_clock::now();
   const auto initialization_start = input_end;
-  standalone_decimator::QemDecimator decimator(std::move(input));
+  standalone_decimator::QemDecimator decimator(
+      std::move(input), internal_memory_mode(options.memory_mode));
   const auto initialization_end = std::chrono::steady_clock::now();
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(mesh.triangle_count, options.target_faces);
+  internal_options.memory_mode = internal_memory_mode(options.memory_mode);
   internal_options.trace_path = options.trace_path;
   const auto collapse_start = initialization_end;
   const standalone_decimator::DecimatorStats internal_stats =
@@ -258,11 +266,13 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
   standalone_decimator::InputMesh input = consume_input(std::move(mesh));
   const auto input_end = std::chrono::steady_clock::now();
   const auto initialization_start = input_end;
-  standalone_decimator::QemDecimator decimator(std::move(input));
+  standalone_decimator::QemDecimator decimator(
+      std::move(input), internal_memory_mode(options.memory_mode));
   const auto initialization_end = std::chrono::steady_clock::now();
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(input_faces, options.target_faces);
+  internal_options.memory_mode = internal_memory_mode(options.memory_mode);
   internal_options.trace_path = options.trace_path;
   const auto collapse_start = initialization_end;
   const standalone_decimator::DecimatorStats internal_stats =

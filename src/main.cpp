@@ -16,6 +16,7 @@ struct Arguments {
   std::string input;
   std::string output;
   std::string trace;
+  meshutil::MemoryMode memory_mode = meshutil::MemoryMode::Balanced;
   std::size_t target_faces = std::numeric_limits<std::size_t>::max();
 };
 
@@ -24,7 +25,7 @@ struct Arguments {
   throw std::invalid_argument(
       message +
       "\nusage: standalone_decimator --input INPUT.ply --output OUTPUT.ply "
-      "--target-faces COUNT [--trace TRACE.jsonl]");
+      "--target-faces COUNT [--memory-mode balanced|low] [--trace TRACE.jsonl]");
 }
 
 std::size_t parse_count(const std::string &text)
@@ -54,7 +55,7 @@ Arguments parse_arguments(const int argc, char **argv)
     if (option == "--help" || option == "-h") {
       std::cout
           << "usage: standalone_decimator --input INPUT.ply --output OUTPUT.ply "
-             "--target-faces COUNT [--trace TRACE.jsonl]\n";
+             "--target-faces COUNT [--memory-mode balanced|low] [--trace TRACE.jsonl]\n";
       std::exit(0);
     }
     if (index + 1 >= argc) {
@@ -72,6 +73,17 @@ Arguments parse_arguments(const int argc, char **argv)
     }
     else if (option == "--trace") {
       arguments.trace = value;
+    }
+    else if (option == "--memory-mode") {
+      if (value == "balanced") {
+        arguments.memory_mode = meshutil::MemoryMode::Balanced;
+      }
+      else if (value == "low") {
+        arguments.memory_mode = meshutil::MemoryMode::Low;
+      }
+      else {
+        usage_error("--memory-mode must be balanced or low");
+      }
     }
     else {
       usage_error("unknown option: " + option);
@@ -102,6 +114,7 @@ int main(const int argc, char **argv)
     meshutil::Mesh input = meshutil::read_mesh(arguments.input);
     meshutil::SimplifyOptions options;
     options.target_faces = arguments.target_faces;
+    options.memory_mode = arguments.memory_mode;
     options.trace_path = arguments.trace;
     meshutil::SimplifyResult result = meshutil::simplify(std::move(input), options);
     meshutil::write_mesh(arguments.output, result.mesh);

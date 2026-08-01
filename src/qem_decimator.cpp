@@ -367,10 +367,15 @@ class BlenderEdgeMap {
 
   void lookup_or_add(VertexId first, VertexId second)
   {
-    ensure_can_add();
     OrderedEdge key;
     key.low = std::min(first, second);
     key.high = std::max(first, second);
+    if (occupied_slots_ >= usable_slots_) {
+      if (lookup_ordered(key.low, key.high) != kInvalidEdgeId) {
+        return;
+      }
+      ensure_can_add();
+    }
     if (lookup_or_add_without_grow(key)) {
       ++occupied_slots_;
     }
@@ -518,7 +523,7 @@ class TraceWriter {
 
 class QemDecimator::Impl {
  public:
-  explicit Impl(InputMesh mesh)
+  Impl(InputMesh mesh, const MemoryMode memory_mode) : memory_mode_(memory_mode)
   {
     if (mesh.vertices.size() > std::numeric_limits<VertexId>::max() ||
         mesh.faces.size() > std::numeric_limits<FaceId>::max() ||
@@ -1207,18 +1212,30 @@ class QemDecimator::Impl {
     constexpr std::size_t kParallelMapCount = 8;
     const std::size_t map_count =
         faces_.size() < kParallelMapThreshold ? 1 : kParallelMapCount;
-    if (faces_.size() > std::numeric_limits<std::size_t>::max() / 2) {
+    const std::size_t map_mask = map_count - 1;
+    if (faces_.size() > std::numeric_limits<std::size_t>::max() / 3) {
       throw std::runtime_error("initial edge map capacity overflow");
     }
-    const std::size_t edge_count_guess = faces_.size() * 2;
-    const std::size_t reserve_per_map = edge_count_guess / map_count;
+    std::size_t unique_edge_guess = 0;
+    if (memory_mode_ == MemoryMode::Low) {
+      const std::size_t edge_references = faces_.size() * 3;
+      const std::size_t shard_divisor = 2 * map_count;
+      unique_edge_guess =
+          edge_references / shard_divisor +
+          (edge_references % shard_divisor != 0 ? 1 : 0);
+    }
+    else {
+      if (faces_.size() > std::numeric_limits<std::size_t>::max() / 2) {
+        throw std::runtime_error("initial edge map capacity overflow");
+      }
+      unique_edge_guess = faces_.size() * 2 / map_count;
+    }
     std::vector<BlenderEdgeMap> edge_maps;
     edge_maps.reserve(map_count);
     for (std::size_t map_index = 0; map_index < map_count; ++map_index) {
-      edge_maps.emplace_back(reserve_per_map);
+      edge_maps.emplace_back(unique_edge_guess);
     }
 
-    const std::size_t map_mask = map_count - 1;
     for (const Face &face : faces_) {
       VertexId previous = face.vertices.back();
       for (const VertexId current : face.vertices) {
@@ -1608,10 +1625,13 @@ class QemDecimator::Impl {
   std::size_t active_faces_ = 0;
   std::size_t input_vertices_ = 0;
   std::size_t input_faces_ = 0;
+  MemoryMode memory_mode_ = MemoryMode::Balanced;
   DecimatorStats stats_;
 };
 
-QemDecimator::QemDecimator(InputMesh mesh) : impl_(new Impl(std::move(mesh))) {}
+QemDecimator::QemDecimator(InputMesh mesh, const MemoryMode memory_mode)
+    : impl_(new Impl(std::move(mesh), memory_mode))
+{}
 
 QemDecimator::~QemDecimator()
 {

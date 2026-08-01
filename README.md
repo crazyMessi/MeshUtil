@@ -15,6 +15,7 @@ Python binding, and CLI.
 
 meshutil::SimplifyOptions options;
 options.target_faces = 1'000'000;
+options.memory_mode = meshutil::MemoryMode::Balanced;
 meshutil::SimplifyResult result = meshutil::simplify(mesh.view(), options);
 ```
 
@@ -29,7 +30,7 @@ core algorithm wall time.
 import meshutil
 
 out_vertices, out_faces, stats = meshutil.simplify(
-    vertices, faces, target_faces=1_000_000, threads=1
+    vertices, faces, target_faces=1_000_000, threads=1, memory_mode="balanced"
 )
 ```
 
@@ -121,6 +122,7 @@ build dependencies.
   --input /path/to/input.ply \
   --output /path/to/output.obj \
   --target-faces 3000000 \
+  --memory-mode balanced \
   --trace /path/to/output.trace.jsonl
 ```
 
@@ -133,6 +135,14 @@ The current format layer supports strict binary little-endian triangle PLY and
 geometry-only OBJ. OBJ polygon faces are triangulated with a fan. The legacy
 `standalone_decimator` executable remains available as a compatibility alias for
 `meshutil_simplify`.
+
+`memory_mode` and `--memory-mode` accept:
+
+- `balanced` (default): preserve the larger initial edge-map reserve for the
+  best single-thread throughput;
+- `low`: use a tighter triangle-mesh edge estimate. On the validated
+  17.9-million-face case this reduced peak RSS from 4.14 GiB to 3.39 GiB, with
+  a small initialization-time trade-off.
 
 ## Continuous Batch Runner
 

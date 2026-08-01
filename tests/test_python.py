@@ -46,12 +46,25 @@ def main():
     assert stats["input_faces"] == 12
     assert stats["target_reached"]
 
+    _, low_faces, low_stats = meshutil.simplify(
+        positions, triangles, 6, memory_mode="low"
+    )
+    assert low_faces.shape[0] <= 6
+    assert low_stats["target_reached"]
+
     try:
         meshutil.simplify(positions.astype(np.float64), triangles, 6)
     except TypeError:
         pass
     else:
         raise AssertionError("float64 positions should be rejected")
+
+    try:
+        meshutil.simplify(positions, triangles, 6, memory_mode="invalid")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("invalid memory mode should be rejected")
 
 
 if __name__ == "__main__":

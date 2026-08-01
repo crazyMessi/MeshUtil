@@ -66,6 +66,16 @@ int main()
       owning_result.mesh.triangles == result.mesh.triangles,
       "owning triangles changed the result");
 
+  meshutil::SimplifyOptions low_memory_options = options;
+  low_memory_options.memory_mode = meshutil::MemoryMode::Low;
+  const meshutil::SimplifyResult low_memory_result =
+      meshutil::simplify(input.view(), low_memory_options);
+  require(low_memory_result.stats.target_reached, "low-memory target was not reached");
+  require(
+      low_memory_result.mesh.triangle_count() <= options.target_faces,
+      "low-memory target face count was exceeded");
+  meshutil::validate_mesh(low_memory_result.mesh.view());
+
   const std::filesystem::path output =
       std::filesystem::temp_directory_path() / "meshutil_api_test.obj";
   meshutil::write_mesh(output.string(), result.mesh);

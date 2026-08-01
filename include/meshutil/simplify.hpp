@@ -7,9 +7,15 @@
 
 namespace meshutil {
 
+enum class MemoryMode {
+  Balanced,
+  Low,
+};
+
 struct SimplifyOptions {
   std::size_t target_faces = 0;
   unsigned threads = 1;
+  MemoryMode memory_mode = MemoryMode::Balanced;
   std::string trace_path;
 };
 
