@@ -72,12 +72,6 @@ constexpr double kTopologyFallbackEpsilon = 1.0e-12;
 constexpr double kFlipThreshold = 0.01;
 constexpr double kInvalidCost = static_cast<double>(FLT_MAX);
 
-struct Float3 {
-  float x = 0.0f;
-  float y = 0.0f;
-  float z = 0.0f;
-};
-
 Float3 to_float3(const Vec3 &value) noexcept
 {
   volatile float x = static_cast<float>(value.x);
@@ -88,6 +82,11 @@ Float3 to_float3(const Vec3 &value) noexcept
       y,
       z,
   };
+}
+
+Float3 to_float3(const Float3 &value) noexcept
+{
+  return value;
 }
 
 Vec3 to_vec3(const Float3 &value) noexcept
@@ -284,8 +283,8 @@ LoopId loop_previous(const LoopId loop_id) noexcept
 }
 
 struct Vertex {
-  Vec3 position;
-  Vec3 normal;
+  Float3 position;
+  Float3 normal;
   Quadric quadric;
   EdgeId disk_head = kInvalidEdgeId;
   bool alive = true;
@@ -307,7 +306,7 @@ struct Edge {
 
 struct Face {
   std::array<VertexId, 3> vertices{};
-  Vec3 normal;
+  Float3 normal;
   bool alive = true;
 };
 
@@ -531,7 +530,7 @@ class QemDecimator::Impl {
 
     splice_edges_scratch_.reserve(2);
     vertices_.reserve(mesh.vertices.size());
-    for (const Vec3 &position : mesh.vertices) {
+    for (const Float3 &position : mesh.vertices) {
       Vertex vertex;
       vertex.position = position;
       vertices_.push_back(std::move(vertex));
@@ -556,7 +555,7 @@ class QemDecimator::Impl {
     active_faces_ = faces_.size();
     input_vertices_ = vertices_.size();
     input_faces_ = faces_.size();
-    std::vector<Vec3>().swap(mesh.vertices);
+    std::vector<Float3>().swap(mesh.vertices);
     std::vector<std::array<VertexId, 3>>().swap(mesh.faces);
 
     {
@@ -688,7 +687,7 @@ class QemDecimator::Impl {
   }
 
  private:
-  Vec3 calculate_face_normal(const Face &face) const noexcept
+  Float3 calculate_face_normal(const Face &face) const noexcept
   {
     const Float3 first = to_float3(vertices_[face.vertices[0]].position);
     const Float3 second = to_float3(vertices_[face.vertices[1]].position);
@@ -696,7 +695,7 @@ class QemDecimator::Impl {
     Float3 normal = cross_float3(subtract_float3(first, second),
                                  subtract_float3(second, third));
     normalize_float3(normal);
-    return to_vec3(normal);
+    return normal;
   }
 
   void build_vertex_normals()
@@ -760,7 +759,7 @@ class QemDecimator::Impl {
         normal = to_float3(vertices_[vertex_id].position);
         normalize_float3(normal);
       }
-      vertices_[vertex_id].normal = to_vec3(normal);
+      vertices_[vertex_id].normal = normal;
     }
   }
 
@@ -779,7 +778,7 @@ class QemDecimator::Impl {
       center.y *= center_scale;
       center.z *= center_scale;
 
-      const Float3 face_normal = to_float3(face.normal);
+      const Float3 face_normal = face.normal;
       const double normal_x = static_cast<double>(face_normal.x);
       const double normal_y = static_cast<double>(face_normal.y);
       const double normal_z = static_cast<double>(face_normal.z);
@@ -804,7 +803,7 @@ class QemDecimator::Impl {
       const Float3 second_position = to_float3(vertices_[edge.second].position);
       const Float3 edge_vector = subtract_float3(second_position, first_position);
       const Float3 edge_plane =
-          cross_float3(edge_vector, to_float3(face.normal));
+          cross_float3(edge_vector, face.normal);
       Vec3 boundary_normal = to_vec3(edge_plane);
       const double boundary_length = length(boundary_normal);
       if (!(boundary_length > static_cast<double>(FLT_EPSILON))) {
@@ -1304,7 +1303,13 @@ class QemDecimator::Impl {
     if (combined.optimize(target, kOptimizeEpsilon)) {
       return target;
     }
-    return (vertices_[edge.first].position + vertices_[edge.second].position) * 0.5;
+    const Float3 &first = vertices_[edge.first].position;
+    const Float3 &second = vertices_[edge.second].position;
+    return {
+        (static_cast<double>(first.x) + static_cast<double>(second.x)) * 0.5,
+        (static_cast<double>(first.y) + static_cast<double>(second.y)) * 0.5,
+        (static_cast<double>(first.z) + static_cast<double>(second.z)) * 0.5,
+    };
   }
 
   Vec3 calculate_collapse_target(const Edge &edge) const noexcept
@@ -1327,23 +1332,20 @@ class QemDecimator::Impl {
       return static_cast<float>(kInvalidCost);
     }
     if (cost < static_cast<float>(kTopologyFallbackEpsilon)) {
-      const Vec3 &first_position = vertices_[edge.first].position;
-      const Vec3 &second_position = vertices_[edge.second].position;
-      const float delta_x = static_cast<float>(first_position.x) -
-                            static_cast<float>(second_position.x);
-      const float delta_y = static_cast<float>(first_position.y) -
-                            static_cast<float>(second_position.y);
-      const float delta_z = static_cast<float>(first_position.z) -
-                            static_cast<float>(second_position.z);
+      const Float3 &first_position = vertices_[edge.first].position;
+      const Float3 &second_position = vertices_[edge.second].position;
+      const float delta_x = first_position.x - second_position.x;
+      const float delta_y = first_position.y - second_position.y;
+      const float delta_z = first_position.z - second_position.z;
       const float squared_edge_length =
           delta_x * delta_x + delta_y * delta_y + delta_z * delta_z;
       const float denominator = std::min(-squared_edge_length, -FLT_EPSILON);
-      const Vec3 &first_normal = vertices_[edge.first].normal;
-      const Vec3 &second_normal = vertices_[edge.second].normal;
+      const Float3 &first_normal = vertices_[edge.first].normal;
+      const Float3 &second_normal = vertices_[edge.second].normal;
       const float normal_alignment = std::fabs(
-          static_cast<float>(first_normal.x) * static_cast<float>(second_normal.x) +
-          static_cast<float>(first_normal.y) * static_cast<float>(second_normal.y) +
-          static_cast<float>(first_normal.z) * static_cast<float>(second_normal.z));
+          first_normal.x * second_normal.x +
+          first_normal.y * second_normal.y +
+          first_normal.z * second_normal.z);
       cost = normal_alignment / denominator - cost;
     }
     return cost;
@@ -1495,11 +1497,11 @@ class QemDecimator::Impl {
     const Edge edge_before = edges_[edge_id];
     const VertexId keep = edge_before.first;
     const VertexId remove = edge_before.second;
-    const Float3 keep_position = to_float3(vertices_[keep].position);
-    const Float3 remove_position = to_float3(vertices_[remove].position);
+    const Float3 keep_position = vertices_[keep].position;
+    const Float3 remove_position = vertices_[remove].position;
     const Float3 optimized_position = to_float3(target);
-    const Float3 keep_normal = to_float3(vertices_[keep].normal);
-    const Float3 remove_normal = to_float3(vertices_[remove].normal);
+    const Float3 keep_normal = vertices_[keep].normal;
+    const Float3 remove_normal = vertices_[remove].normal;
     if (edge_before.radial_head == kInvalidLoopId) {
       throw std::runtime_error("internal error: collapse edge has no radial users");
     }
@@ -1548,7 +1550,7 @@ class QemDecimator::Impl {
       splice_edge(splice.second, splice.first);
     }
 
-    vertices_[keep].position = to_vec3(optimized_position);
+    vertices_[keep].position = optimized_position;
     vertices_[keep].quadric += vertices_[remove].quadric;
     vertices_[remove].alive = false;
 
@@ -1559,7 +1561,7 @@ class QemDecimator::Impl {
         inverse_factor * keep_normal.z + customdata_factor * remove_normal.z,
     };
     normalize_float3(interpolated_normal);
-    vertices_[keep].normal = to_vec3(interpolated_normal);
+    vertices_[keep].normal = interpolated_normal;
 
     const EdgeId disk_head = vertices_[keep].disk_head;
     if (disk_head != kInvalidEdgeId) {

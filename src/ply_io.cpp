@@ -275,7 +275,7 @@ InputMesh read_binary_triangle_ply(const std::string &path)
 
     const unsigned char *cursor = buffer.data();
     for (std::size_t index = 0; index < chunk_count; ++index) {
-      Vec3 &vertex = mesh.vertices[first + index];
+      Float3 &vertex = mesh.vertices[first + index];
       vertex.x = decode_float32(cursor, path);
       cursor += sizeof(std::uint32_t);
       vertex.y = decode_float32(cursor, path);
@@ -375,7 +375,7 @@ void write_binary_triangle_ply_atomic(const std::string &path, const InputMesh &
         std::min(vertices_per_chunk, mesh.vertices.size() - first);
     unsigned char *cursor = buffer.data();
     for (std::size_t index = 0; index < chunk_count; ++index) {
-      const Vec3 &vertex = mesh.vertices[first + index];
+      const Float3 &vertex = mesh.vertices[first + index];
       encode_float32(cursor, vertex.x, temporary_path_string);
       cursor += sizeof(std::uint32_t);
       encode_float32(cursor, vertex.y, temporary_path_string);

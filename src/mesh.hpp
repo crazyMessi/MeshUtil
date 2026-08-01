@@ -27,8 +27,14 @@ double dot(const Vec3 &left, const Vec3 &right) noexcept;
 double length_squared(const Vec3 &value) noexcept;
 double length(const Vec3 &value) noexcept;
 
+struct Float3 {
+  float x = 0.0f;
+  float y = 0.0f;
+  float z = 0.0f;
+};
+
 struct InputMesh {
-  std::vector<Vec3> vertices;
+  std::vector<Float3> vertices;
   std::vector<std::array<VertexId, 3>> faces;
 };
 

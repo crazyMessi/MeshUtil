@@ -61,9 +61,9 @@ Mesh from_internal(standalone_decimator::InputMesh input)
   result.positions.resize(input.vertices.size() * 3);
   result.triangles.resize(input.faces.size() * 3);
   for (std::size_t vertex = 0; vertex < input.vertices.size(); ++vertex) {
-    result.positions[vertex * 3] = static_cast<float>(input.vertices[vertex].x);
-    result.positions[vertex * 3 + 1] = static_cast<float>(input.vertices[vertex].y);
-    result.positions[vertex * 3 + 2] = static_cast<float>(input.vertices[vertex].z);
+    result.positions[vertex * 3] = input.vertices[vertex].x;
+    result.positions[vertex * 3 + 1] = input.vertices[vertex].y;
+    result.positions[vertex * 3 + 2] = input.vertices[vertex].z;
   }
   for (std::size_t triangle = 0; triangle < input.faces.size(); ++triangle) {
     for (std::size_t corner = 0; corner < input.faces[triangle].size(); ++corner) {

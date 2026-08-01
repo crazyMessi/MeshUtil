@@ -43,7 +43,7 @@ standalone_decimator::InputMesh copy_input(const MeshView mesh)
   input.vertices.resize(mesh.vertex_count);
   input.faces.resize(mesh.triangle_count);
   for (std::size_t vertex = 0; vertex < mesh.vertex_count; ++vertex) {
-    standalone_decimator::Vec3 &position = input.vertices[vertex];
+    standalone_decimator::Float3 &position = input.vertices[vertex];
     position.x = read_strided<float>(
         mesh.positions, mesh.position_stride_bytes, vertex, 0);
     position.y = read_strided<float>(
@@ -69,9 +69,9 @@ standalone_decimator::InputMesh consume_input(Mesh mesh)
   input.faces.resize(mesh.triangle_count());
   for (std::size_t vertex = 0; vertex < input.vertices.size(); ++vertex) {
     input.vertices[vertex] = {
-        static_cast<double>(mesh.positions[vertex * 3]),
-        static_cast<double>(mesh.positions[vertex * 3 + 1]),
-        static_cast<double>(mesh.positions[vertex * 3 + 2]),
+        mesh.positions[vertex * 3],
+        mesh.positions[vertex * 3 + 1],
+        mesh.positions[vertex * 3 + 2],
     };
   }
   std::vector<float>().swap(mesh.positions);
@@ -92,9 +92,9 @@ Mesh copy_output(const standalone_decimator::InputMesh &input)
   output.positions.resize(input.vertices.size() * 3);
   output.triangles.resize(input.faces.size() * 3);
   for (std::size_t vertex = 0; vertex < input.vertices.size(); ++vertex) {
-    output.positions[vertex * 3] = static_cast<float>(input.vertices[vertex].x);
-    output.positions[vertex * 3 + 1] = static_cast<float>(input.vertices[vertex].y);
-    output.positions[vertex * 3 + 2] = static_cast<float>(input.vertices[vertex].z);
+    output.positions[vertex * 3] = input.vertices[vertex].x;
+    output.positions[vertex * 3 + 1] = input.vertices[vertex].y;
+    output.positions[vertex * 3 + 2] = input.vertices[vertex].z;
   }
   for (std::size_t face = 0; face < input.faces.size(); ++face) {
     for (std::size_t corner = 0; corner < input.faces[face].size(); ++corner) {
