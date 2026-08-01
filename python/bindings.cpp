@@ -36,6 +36,32 @@ py::dict stats_dict(const meshutil::SimplifyStats &stats)
   result["rejected_topology"] = stats.rejected_topology;
   result["rejected_flip"] = stats.rejected_flip;
   result["invalid_edges"] = stats.invalid_edges;
+  result["partition_dry_run_count"] = stats.partition_dry_run_count;
+  result["partition_alive_vertices"] = stats.partition_alive_vertices;
+  result["partition_alive_edges"] = stats.partition_alive_edges;
+  result["partition_face_corner_load_min"] = stats.partition_face_corner_load_min;
+  result["partition_face_corner_load_mean"] = stats.partition_face_corner_load_mean;
+  result["partition_face_corner_load_max"] = stats.partition_face_corner_load_max;
+  result["partition_face_corner_load_max_over_mean"] =
+      stats.partition_face_corner_load_max_over_mean;
+  result["partition_cross_edge_count"] = stats.partition_cross_edge_count;
+  result["partition_cross_edge_fraction"] = stats.partition_cross_edge_fraction;
+  result["partition_halo_b0_vertex_count"] = stats.partition_halo_b0_vertex_count;
+  result["partition_halo_b0_vertex_fraction"] =
+      stats.partition_halo_b0_vertex_fraction;
+  result["partition_halo_b1_vertex_count"] = stats.partition_halo_b1_vertex_count;
+  result["partition_halo_b1_vertex_fraction"] =
+      stats.partition_halo_b1_vertex_fraction;
+  result["partition_halo_b2_vertex_count"] = stats.partition_halo_b2_vertex_count;
+  result["partition_halo_b2_vertex_fraction"] =
+      stats.partition_halo_b2_vertex_fraction;
+  result["partition_halo_face_count"] = stats.partition_halo_face_count;
+  result["partition_halo_face_fraction"] = stats.partition_halo_face_fraction;
+  result["partition_eligible_edge_count"] = stats.partition_eligible_edge_count;
+  result["partition_eligible_edge_fraction"] =
+      stats.partition_eligible_edge_fraction;
+  result["partition_wall_seconds"] = stats.partition_wall_seconds;
+  result["partition_transient_bytes"] = stats.partition_transient_bytes;
   result["target_reached"] = stats.target_reached;
   result["input_conversion_seconds"] = stats.input_conversion_seconds;
   result["initialization_seconds"] = stats.initialization_seconds;
@@ -50,7 +76,8 @@ py::tuple simplify_arrays(const py::array &positions,
                           const py::array &triangles,
                           const std::size_t target_faces,
                           const unsigned threads,
-                          const std::string &memory_mode)
+                          const std::string &memory_mode,
+                          const std::size_t partition_dry_run_count)
 {
   require_matrix(positions, py::dtype::of<float>(), "positions");
   require_matrix(triangles, py::dtype::of<meshutil::Index>(), "triangles");
@@ -66,6 +93,7 @@ py::tuple simplify_arrays(const py::array &positions,
   meshutil::SimplifyOptions options;
   options.target_faces = target_faces;
   options.threads = threads;
+  options.partition_dry_run_count = partition_dry_run_count;
   if (memory_mode == "balanced") {
     options.memory_mode = meshutil::MemoryMode::Balanced;
   }
@@ -109,5 +137,6 @@ PYBIND11_MODULE(meshutil, module)
       py::arg("target_faces"),
       py::arg("threads") = 1,
       py::arg("memory_mode") = "balanced",
+      py::arg("partition_dry_run_count") = 0,
       "Simplify float32 positions and uint32 triangle indices.");
 }

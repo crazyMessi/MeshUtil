@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cfloat>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -489,6 +490,59 @@ bool face_contains(const Face &face, const VertexId vertex) noexcept
   return face.vertices[0] == vertex || face.vertices[1] == vertex || face.vertices[2] == vertex;
 }
 
+struct MortonVertex {
+  std::uint64_t morton = 0;
+  VertexId vertex = 0;
+  std::uint32_t face_corner_degree = 0;
+};
+
+std::uint32_t quantize_morton_axis(const float value,
+                                   const float minimum,
+                                   const float maximum) noexcept
+{
+  constexpr std::uint32_t kMortonAxisMaximum = (std::uint32_t{1} << 21) - 1;
+  if (!(maximum > minimum)) {
+    return 0;
+  }
+  const double normalized =
+      (static_cast<double>(value) - static_cast<double>(minimum)) /
+      (static_cast<double>(maximum) - static_cast<double>(minimum));
+  if (normalized <= 0.0) {
+    return 0;
+  }
+  if (normalized >= 1.0) {
+    return kMortonAxisMaximum;
+  }
+  return static_cast<std::uint32_t>(
+      normalized * static_cast<double>(kMortonAxisMaximum));
+}
+
+std::uint64_t morton_code_21(const Float3 &position,
+                             const Float3 &minimum,
+                             const Float3 &maximum) noexcept
+{
+  const std::uint32_t x =
+      quantize_morton_axis(position.x, minimum.x, maximum.x);
+  const std::uint32_t y =
+      quantize_morton_axis(position.y, minimum.y, maximum.y);
+  const std::uint32_t z =
+      quantize_morton_axis(position.z, minimum.z, maximum.z);
+  std::uint64_t result = 0;
+  for (std::uint32_t bit = 0; bit < 21; ++bit) {
+    result |= static_cast<std::uint64_t>((x >> bit) & 1) << (3 * bit);
+    result |= static_cast<std::uint64_t>((y >> bit) & 1) << (3 * bit + 1);
+    result |= static_cast<std::uint64_t>((z >> bit) & 1) << (3 * bit + 2);
+  }
+  return result;
+}
+
+double fraction(const std::size_t numerator, const std::size_t denominator) noexcept
+{
+  return denominator == 0 ?
+             0.0 :
+             static_cast<double>(numerator) / static_cast<double>(denominator);
+}
+
 class TraceWriter {
  public:
   explicit TraceWriter(const std::string &path)
@@ -574,6 +628,209 @@ class QemDecimator::Impl {
     for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
       update_edge_cost(edge_id);
     }
+  }
+
+  void partition_dry_run(const std::size_t partition_count)
+  {
+    if (partition_count == 0) {
+      return;
+    }
+    const auto start = std::chrono::steady_clock::now();
+    stats_.partition_alive_vertices = 0;
+    stats_.partition_alive_edges = 0;
+    stats_.partition_face_corner_load_min = 0;
+    stats_.partition_face_corner_load_mean = 0.0;
+    stats_.partition_face_corner_load_max = 0;
+    stats_.partition_face_corner_load_max_over_mean = 0.0;
+    stats_.partition_cross_edge_count = 0;
+    stats_.partition_cross_edge_fraction = 0.0;
+    stats_.partition_halo_b0_vertex_count = 0;
+    stats_.partition_halo_b0_vertex_fraction = 0.0;
+    stats_.partition_halo_b1_vertex_count = 0;
+    stats_.partition_halo_b1_vertex_fraction = 0.0;
+    stats_.partition_halo_b2_vertex_count = 0;
+    stats_.partition_halo_b2_vertex_fraction = 0.0;
+    stats_.partition_halo_face_count = 0;
+    stats_.partition_halo_face_fraction = 0.0;
+    stats_.partition_eligible_edge_count = 0;
+    stats_.partition_eligible_edge_fraction = 0.0;
+    stats_.partition_wall_seconds = 0.0;
+    stats_.partition_transient_bytes = 0;
+    stats_.partition_dry_run_count = partition_count;
+
+    Float3 bounds_minimum;
+    Float3 bounds_maximum;
+    bool have_bounds = false;
+    std::size_t alive_vertices = 0;
+    for (const Vertex &vertex : vertices_) {
+      if (!vertex.alive) {
+        continue;
+      }
+      ++alive_vertices;
+      if (!have_bounds) {
+        bounds_minimum = vertex.position;
+        bounds_maximum = vertex.position;
+        have_bounds = true;
+        continue;
+      }
+      bounds_minimum.x = std::min(bounds_minimum.x, vertex.position.x);
+      bounds_minimum.y = std::min(bounds_minimum.y, vertex.position.y);
+      bounds_minimum.z = std::min(bounds_minimum.z, vertex.position.z);
+      bounds_maximum.x = std::max(bounds_maximum.x, vertex.position.x);
+      bounds_maximum.y = std::max(bounds_maximum.y, vertex.position.y);
+      bounds_maximum.z = std::max(bounds_maximum.z, vertex.position.z);
+    }
+    stats_.partition_alive_vertices = alive_vertices;
+
+    std::vector<MortonVertex> morton_vertices;
+    morton_vertices.reserve(alive_vertices);
+    std::uint64_t total_face_corner_load = 0;
+    for (VertexId vertex_id = 0; vertex_id < vertices_.size(); ++vertex_id) {
+      const Vertex &vertex = vertices_[vertex_id];
+      if (!vertex.alive) {
+        continue;
+      }
+      const std::size_t degree = vertex_face_count(vertex_id);
+      if (degree > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error("vertex face-corner degree exceeds uint32 capacity");
+      }
+      morton_vertices.push_back({
+          morton_code_21(vertex.position, bounds_minimum, bounds_maximum),
+          vertex_id,
+          static_cast<std::uint32_t>(degree),
+      });
+      total_face_corner_load += degree;
+    }
+    std::sort(
+        morton_vertices.begin(),
+        morton_vertices.end(),
+        [](const MortonVertex &left, const MortonVertex &right) {
+          if (left.morton != right.morton) {
+            return left.morton < right.morton;
+          }
+          return left.vertex < right.vertex;
+        });
+
+    const std::uint16_t invalid_owner = std::numeric_limits<std::uint16_t>::max();
+    std::vector<std::uint16_t> owner(vertices_.size(), invalid_owner);
+    std::vector<std::size_t> partition_loads(partition_count, 0);
+    std::uint64_t load_prefix = 0;
+    for (std::size_t index = 0; index < morton_vertices.size(); ++index) {
+      const MortonVertex &entry = morton_vertices[index];
+      std::size_t partition = 0;
+      if (total_face_corner_load != 0) {
+        const std::uint64_t midpoint_twice =
+            load_prefix * 2 + entry.face_corner_degree;
+        partition = static_cast<std::size_t>(
+            midpoint_twice * partition_count / (total_face_corner_load * 2));
+        partition = std::min(partition, partition_count - 1);
+      }
+      else {
+        partition = index * partition_count /
+                    std::max<std::size_t>(1, morton_vertices.size());
+      }
+      owner[entry.vertex] = static_cast<std::uint16_t>(partition);
+      partition_loads[partition] += entry.face_corner_degree;
+      load_prefix += entry.face_corner_degree;
+    }
+
+    const auto load_bounds =
+        std::minmax_element(partition_loads.begin(), partition_loads.end());
+    stats_.partition_face_corner_load_min = *load_bounds.first;
+    stats_.partition_face_corner_load_mean =
+        static_cast<double>(total_face_corner_load) /
+        static_cast<double>(partition_count);
+    stats_.partition_face_corner_load_max = *load_bounds.second;
+    stats_.partition_face_corner_load_max_over_mean =
+        stats_.partition_face_corner_load_mean == 0.0 ?
+            0.0 :
+            static_cast<double>(stats_.partition_face_corner_load_max) /
+                stats_.partition_face_corner_load_mean;
+
+    constexpr std::uint8_t kOutsideHalo = std::numeric_limits<std::uint8_t>::max();
+    std::vector<std::uint8_t> boundary_distance(vertices_.size(), kOutsideHalo);
+    std::size_t alive_edges = 0;
+    std::size_t cross_edges = 0;
+    for (const Edge &edge : edges_) {
+      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+        continue;
+      }
+      ++alive_edges;
+      if (owner[edge.first] != owner[edge.second]) {
+        ++cross_edges;
+        boundary_distance[edge.first] = 0;
+        boundary_distance[edge.second] = 0;
+      }
+    }
+    stats_.partition_alive_edges = alive_edges;
+    stats_.partition_cross_edge_count = cross_edges;
+    stats_.partition_cross_edge_fraction = fraction(cross_edges, alive_edges);
+
+    for (std::uint8_t ring = 1; ring <= 4; ++ring) {
+      for (const Edge &edge : edges_) {
+        if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+          continue;
+        }
+        const bool first_frontier = boundary_distance[edge.first] == ring - 1;
+        const bool second_frontier = boundary_distance[edge.second] == ring - 1;
+        if (first_frontier && boundary_distance[edge.second] > ring) {
+          boundary_distance[edge.second] = ring;
+        }
+        if (second_frontier && boundary_distance[edge.first] > ring) {
+          boundary_distance[edge.first] = ring;
+        }
+      }
+    }
+
+    for (VertexId vertex_id = 0; vertex_id < vertices_.size(); ++vertex_id) {
+      if (!vertices_[vertex_id].alive) {
+        continue;
+      }
+      stats_.partition_halo_b0_vertex_count += boundary_distance[vertex_id] <= 0 ? 1 : 0;
+      stats_.partition_halo_b1_vertex_count += boundary_distance[vertex_id] <= 1 ? 1 : 0;
+      stats_.partition_halo_b2_vertex_count += boundary_distance[vertex_id] <= 2 ? 1 : 0;
+    }
+    stats_.partition_halo_b0_vertex_fraction =
+        fraction(stats_.partition_halo_b0_vertex_count, alive_vertices);
+    stats_.partition_halo_b1_vertex_fraction =
+        fraction(stats_.partition_halo_b1_vertex_count, alive_vertices);
+    stats_.partition_halo_b2_vertex_fraction =
+        fraction(stats_.partition_halo_b2_vertex_count, alive_vertices);
+
+    for (const Face &face : faces_) {
+      if (!face.alive) {
+        continue;
+      }
+      if (boundary_distance[face.vertices[0]] <= 2 ||
+          boundary_distance[face.vertices[1]] <= 2 ||
+          boundary_distance[face.vertices[2]] <= 2)
+      {
+        ++stats_.partition_halo_face_count;
+      }
+    }
+    stats_.partition_halo_face_fraction =
+        fraction(stats_.partition_halo_face_count, active_faces_);
+
+    for (const Edge &edge : edges_) {
+      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+        continue;
+      }
+      if (owner[edge.first] == owner[edge.second] &&
+          boundary_distance[edge.first] > 4 &&
+          boundary_distance[edge.second] > 4)
+      {
+        ++stats_.partition_eligible_edge_count;
+      }
+    }
+    stats_.partition_eligible_edge_fraction =
+        fraction(stats_.partition_eligible_edge_count, alive_edges);
+    stats_.partition_transient_bytes =
+        morton_vertices.capacity() * sizeof(MortonVertex) +
+        owner.capacity() * sizeof(std::uint16_t) +
+        boundary_distance.capacity() * sizeof(std::uint8_t) +
+        partition_loads.capacity() * sizeof(std::size_t);
+    stats_.partition_wall_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
   }
 
   DecimatorStats decimate(const DecimatorOptions &options)
@@ -1636,6 +1893,11 @@ QemDecimator::QemDecimator(InputMesh mesh, const MemoryMode memory_mode)
 QemDecimator::~QemDecimator()
 {
   delete impl_;
+}
+
+void QemDecimator::partition_dry_run(const std::size_t partition_count)
+{
+  impl_->partition_dry_run(partition_count);
 }
 
 DecimatorStats QemDecimator::decimate(const DecimatorOptions &options)

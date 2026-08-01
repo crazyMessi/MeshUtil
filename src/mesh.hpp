@@ -61,6 +61,27 @@ struct DecimatorStats {
   std::size_t rejected_topology = 0;
   std::size_t rejected_flip = 0;
   std::size_t invalid_edges = 0;
+  std::size_t partition_dry_run_count = 0;
+  std::size_t partition_alive_vertices = 0;
+  std::size_t partition_alive_edges = 0;
+  std::size_t partition_face_corner_load_min = 0;
+  double partition_face_corner_load_mean = 0.0;
+  std::size_t partition_face_corner_load_max = 0;
+  double partition_face_corner_load_max_over_mean = 0.0;
+  std::size_t partition_cross_edge_count = 0;
+  double partition_cross_edge_fraction = 0.0;
+  std::size_t partition_halo_b0_vertex_count = 0;
+  double partition_halo_b0_vertex_fraction = 0.0;
+  std::size_t partition_halo_b1_vertex_count = 0;
+  double partition_halo_b1_vertex_fraction = 0.0;
+  std::size_t partition_halo_b2_vertex_count = 0;
+  double partition_halo_b2_vertex_fraction = 0.0;
+  std::size_t partition_halo_face_count = 0;
+  double partition_halo_face_fraction = 0.0;
+  std::size_t partition_eligible_edge_count = 0;
+  double partition_eligible_edge_fraction = 0.0;
+  double partition_wall_seconds = 0.0;
+  std::size_t partition_transient_bytes = 0;
   bool target_reached = false;
 };
 
@@ -71,6 +92,7 @@ class QemDecimator {
   QemDecimator &operator=(const QemDecimator &) = delete;
   ~QemDecimator();
 
+  void partition_dry_run(std::size_t partition_count);
   DecimatorStats decimate(const DecimatorOptions &options);
   InputMesh compact_mesh() const;
 

@@ -18,6 +18,7 @@ struct Arguments {
   std::string trace;
   meshutil::MemoryMode memory_mode = meshutil::MemoryMode::Balanced;
   std::size_t target_faces = std::numeric_limits<std::size_t>::max();
+  std::size_t partition_dry_run_count = 0;
 };
 
 [[noreturn]] void usage_error(const std::string &message)
@@ -25,7 +26,8 @@ struct Arguments {
   throw std::invalid_argument(
       message +
       "\nusage: standalone_decimator --input INPUT.ply --output OUTPUT.ply "
-      "--target-faces COUNT [--memory-mode balanced|low] [--trace TRACE.jsonl]");
+      "--target-faces COUNT [--partition-dry-run-count 16|32|64|128] "
+      "[--memory-mode balanced|low] [--trace TRACE.jsonl]");
 }
 
 std::size_t parse_count(const std::string &text)
@@ -55,7 +57,8 @@ Arguments parse_arguments(const int argc, char **argv)
     if (option == "--help" || option == "-h") {
       std::cout
           << "usage: standalone_decimator --input INPUT.ply --output OUTPUT.ply "
-             "--target-faces COUNT [--memory-mode balanced|low] [--trace TRACE.jsonl]\n";
+             "--target-faces COUNT [--partition-dry-run-count 16|32|64|128] "
+             "[--memory-mode balanced|low] [--trace TRACE.jsonl]\n";
       std::exit(0);
     }
     if (index + 1 >= argc) {
@@ -70,6 +73,9 @@ Arguments parse_arguments(const int argc, char **argv)
     }
     else if (option == "--target-faces") {
       arguments.target_faces = parse_count(value);
+    }
+    else if (option == "--partition-dry-run-count") {
+      arguments.partition_dry_run_count = parse_count(value);
     }
     else if (option == "--trace") {
       arguments.trace = value;
@@ -114,6 +120,7 @@ int main(const int argc, char **argv)
     meshutil::Mesh input = meshutil::read_mesh(arguments.input);
     meshutil::SimplifyOptions options;
     options.target_faces = arguments.target_faces;
+    options.partition_dry_run_count = arguments.partition_dry_run_count;
     options.memory_mode = arguments.memory_mode;
     options.trace_path = arguments.trace;
     meshutil::SimplifyResult result = meshutil::simplify(std::move(input), options);
@@ -129,6 +136,40 @@ int main(const int argc, char **argv)
               << ",\"rejected_topology\":" << stats.rejected_topology
               << ",\"rejected_flip\":" << stats.rejected_flip
               << ",\"invalid_edges\":" << stats.invalid_edges
+              << ",\"partition_dry_run_count\":" << stats.partition_dry_run_count
+              << ",\"partition_alive_vertices\":" << stats.partition_alive_vertices
+              << ",\"partition_alive_edges\":" << stats.partition_alive_edges
+              << ",\"partition_face_corner_load_min\":"
+              << stats.partition_face_corner_load_min
+              << ",\"partition_face_corner_load_mean\":"
+              << stats.partition_face_corner_load_mean
+              << ",\"partition_face_corner_load_max\":"
+              << stats.partition_face_corner_load_max
+              << ",\"partition_face_corner_load_max_over_mean\":"
+              << stats.partition_face_corner_load_max_over_mean
+              << ",\"partition_cross_edge_count\":" << stats.partition_cross_edge_count
+              << ",\"partition_cross_edge_fraction\":"
+              << stats.partition_cross_edge_fraction
+              << ",\"partition_halo_b0_vertex_count\":"
+              << stats.partition_halo_b0_vertex_count
+              << ",\"partition_halo_b0_vertex_fraction\":"
+              << stats.partition_halo_b0_vertex_fraction
+              << ",\"partition_halo_b1_vertex_count\":"
+              << stats.partition_halo_b1_vertex_count
+              << ",\"partition_halo_b1_vertex_fraction\":"
+              << stats.partition_halo_b1_vertex_fraction
+              << ",\"partition_halo_b2_vertex_count\":"
+              << stats.partition_halo_b2_vertex_count
+              << ",\"partition_halo_b2_vertex_fraction\":"
+              << stats.partition_halo_b2_vertex_fraction
+              << ",\"partition_halo_face_count\":" << stats.partition_halo_face_count
+              << ",\"partition_halo_face_fraction\":" << stats.partition_halo_face_fraction
+              << ",\"partition_eligible_edge_count\":"
+              << stats.partition_eligible_edge_count
+              << ",\"partition_eligible_edge_fraction\":"
+              << stats.partition_eligible_edge_fraction
+              << ",\"partition_wall_seconds\":" << stats.partition_wall_seconds
+              << ",\"partition_transient_bytes\":" << stats.partition_transient_bytes
               << ",\"input_conversion_seconds\":" << stats.input_conversion_seconds
               << ",\"initialization_seconds\":" << stats.initialization_seconds
               << ",\"collapse_seconds\":" << stats.collapse_seconds

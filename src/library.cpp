@@ -115,8 +115,35 @@ SimplifyStats copy_stats(const standalone_decimator::DecimatorStats &stats)
   result.rejected_topology = stats.rejected_topology;
   result.rejected_flip = stats.rejected_flip;
   result.invalid_edges = stats.invalid_edges;
+  result.partition_dry_run_count = stats.partition_dry_run_count;
+  result.partition_alive_vertices = stats.partition_alive_vertices;
+  result.partition_alive_edges = stats.partition_alive_edges;
+  result.partition_face_corner_load_min = stats.partition_face_corner_load_min;
+  result.partition_face_corner_load_mean = stats.partition_face_corner_load_mean;
+  result.partition_face_corner_load_max = stats.partition_face_corner_load_max;
+  result.partition_face_corner_load_max_over_mean =
+      stats.partition_face_corner_load_max_over_mean;
+  result.partition_cross_edge_count = stats.partition_cross_edge_count;
+  result.partition_cross_edge_fraction = stats.partition_cross_edge_fraction;
+  result.partition_halo_b0_vertex_count = stats.partition_halo_b0_vertex_count;
+  result.partition_halo_b0_vertex_fraction = stats.partition_halo_b0_vertex_fraction;
+  result.partition_halo_b1_vertex_count = stats.partition_halo_b1_vertex_count;
+  result.partition_halo_b1_vertex_fraction = stats.partition_halo_b1_vertex_fraction;
+  result.partition_halo_b2_vertex_count = stats.partition_halo_b2_vertex_count;
+  result.partition_halo_b2_vertex_fraction = stats.partition_halo_b2_vertex_fraction;
+  result.partition_halo_face_count = stats.partition_halo_face_count;
+  result.partition_halo_face_fraction = stats.partition_halo_face_fraction;
+  result.partition_eligible_edge_count = stats.partition_eligible_edge_count;
+  result.partition_eligible_edge_fraction = stats.partition_eligible_edge_fraction;
+  result.partition_wall_seconds = stats.partition_wall_seconds;
+  result.partition_transient_bytes = stats.partition_transient_bytes;
   result.target_reached = stats.target_reached;
   return result;
+}
+
+bool valid_partition_count(const std::size_t count) noexcept
+{
+  return count == 0 || count == 16 || count == 32 || count == 64 || count == 128;
 }
 
 standalone_decimator::MemoryMode internal_memory_mode(const MemoryMode mode)
@@ -206,6 +233,10 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
     throw std::invalid_argument(
         "the baseline QEM backend currently supports threads=0 or threads=1");
   }
+  if (!valid_partition_count(options.partition_dry_run_count)) {
+    throw std::invalid_argument(
+        "partition_dry_run_count must be 0, 16, 32, 64, or 128");
+  }
 
   const auto input_start = std::chrono::steady_clock::now();
   standalone_decimator::InputMesh input = copy_input(mesh);
@@ -214,12 +245,13 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   standalone_decimator::QemDecimator decimator(
       std::move(input), internal_memory_mode(options.memory_mode));
   const auto initialization_end = std::chrono::steady_clock::now();
+  decimator.partition_dry_run(options.partition_dry_run_count);
+  const auto collapse_start = std::chrono::steady_clock::now();
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(mesh.triangle_count, options.target_faces);
   internal_options.memory_mode = internal_memory_mode(options.memory_mode);
   internal_options.trace_path = options.trace_path;
-  const auto collapse_start = initialization_end;
   const standalone_decimator::DecimatorStats internal_stats =
       decimator.decimate(internal_options);
   const auto collapse_end = std::chrono::steady_clock::now();
@@ -243,8 +275,8 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   result.stats.output_conversion_seconds =
       std::chrono::duration<double>(output_end - output_start).count();
   result.stats.core_seconds =
-      result.stats.initialization_seconds + result.stats.collapse_seconds +
-      result.stats.compact_seconds;
+      result.stats.initialization_seconds + result.stats.partition_wall_seconds +
+      result.stats.collapse_seconds + result.stats.compact_seconds;
   return result;
 }
 
@@ -261,6 +293,10 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
     throw std::invalid_argument(
         "the baseline QEM backend currently supports threads=0 or threads=1");
   }
+  if (!valid_partition_count(options.partition_dry_run_count)) {
+    throw std::invalid_argument(
+        "partition_dry_run_count must be 0, 16, 32, 64, or 128");
+  }
 
   const auto input_start = std::chrono::steady_clock::now();
   standalone_decimator::InputMesh input = consume_input(std::move(mesh));
@@ -269,12 +305,13 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
   standalone_decimator::QemDecimator decimator(
       std::move(input), internal_memory_mode(options.memory_mode));
   const auto initialization_end = std::chrono::steady_clock::now();
+  decimator.partition_dry_run(options.partition_dry_run_count);
+  const auto collapse_start = std::chrono::steady_clock::now();
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(input_faces, options.target_faces);
   internal_options.memory_mode = internal_memory_mode(options.memory_mode);
   internal_options.trace_path = options.trace_path;
-  const auto collapse_start = initialization_end;
   const standalone_decimator::DecimatorStats internal_stats =
       decimator.decimate(internal_options);
   const auto collapse_end = std::chrono::steady_clock::now();
@@ -298,8 +335,8 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
   result.stats.output_conversion_seconds =
       std::chrono::duration<double>(output_end - output_start).count();
   result.stats.core_seconds =
-      result.stats.initialization_seconds + result.stats.collapse_seconds +
-      result.stats.compact_seconds;
+      result.stats.initialization_seconds + result.stats.partition_wall_seconds +
+      result.stats.collapse_seconds + result.stats.compact_seconds;
   return result;
 }
 
