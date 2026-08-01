@@ -104,8 +104,7 @@ Mesh copy_output(const standalone_decimator::InputMesh &input)
   return output;
 }
 
-SimplifyStats copy_stats(const standalone_decimator::DecimatorStats &stats,
-                         const double core_seconds)
+SimplifyStats copy_stats(const standalone_decimator::DecimatorStats &stats)
 {
   SimplifyStats result;
   result.input_vertices = stats.input_vertices;
@@ -117,7 +116,6 @@ SimplifyStats copy_stats(const standalone_decimator::DecimatorStats &stats,
   result.rejected_flip = stats.rejected_flip;
   result.invalid_edges = stats.invalid_edges;
   result.target_reached = stats.target_reached;
-  result.core_seconds = core_seconds;
   return result;
 }
 
@@ -203,23 +201,42 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
         "the baseline QEM backend currently supports threads=0 or threads=1");
   }
 
+  const auto input_start = std::chrono::steady_clock::now();
   standalone_decimator::InputMesh input = copy_input(mesh);
-  const auto core_start = std::chrono::steady_clock::now();
+  const auto input_end = std::chrono::steady_clock::now();
+  const auto initialization_start = input_end;
   standalone_decimator::QemDecimator decimator(std::move(input));
+  const auto initialization_end = std::chrono::steady_clock::now();
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(mesh.triangle_count, options.target_faces);
   internal_options.trace_path = options.trace_path;
+  const auto collapse_start = initialization_end;
   const standalone_decimator::DecimatorStats internal_stats =
       decimator.decimate(internal_options);
+  const auto collapse_end = std::chrono::steady_clock::now();
+  const auto compact_start = collapse_end;
   standalone_decimator::InputMesh compacted = decimator.compact_mesh();
-  const auto core_end = std::chrono::steady_clock::now();
+  const auto compact_end = std::chrono::steady_clock::now();
 
   SimplifyResult result;
+  const auto output_start = compact_end;
   result.mesh = copy_output(compacted);
-  result.stats = copy_stats(
-      internal_stats,
-      std::chrono::duration<double>(core_end - core_start).count());
+  const auto output_end = std::chrono::steady_clock::now();
+  result.stats = copy_stats(internal_stats);
+  result.stats.input_conversion_seconds =
+      std::chrono::duration<double>(input_end - input_start).count();
+  result.stats.initialization_seconds =
+      std::chrono::duration<double>(initialization_end - initialization_start).count();
+  result.stats.collapse_seconds =
+      std::chrono::duration<double>(collapse_end - collapse_start).count();
+  result.stats.compact_seconds =
+      std::chrono::duration<double>(compact_end - compact_start).count();
+  result.stats.output_conversion_seconds =
+      std::chrono::duration<double>(output_end - output_start).count();
+  result.stats.core_seconds =
+      result.stats.initialization_seconds + result.stats.collapse_seconds +
+      result.stats.compact_seconds;
   return result;
 }
 
@@ -237,23 +254,42 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
         "the baseline QEM backend currently supports threads=0 or threads=1");
   }
 
+  const auto input_start = std::chrono::steady_clock::now();
   standalone_decimator::InputMesh input = consume_input(std::move(mesh));
-  const auto core_start = std::chrono::steady_clock::now();
+  const auto input_end = std::chrono::steady_clock::now();
+  const auto initialization_start = input_end;
   standalone_decimator::QemDecimator decimator(std::move(input));
+  const auto initialization_end = std::chrono::steady_clock::now();
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(input_faces, options.target_faces);
   internal_options.trace_path = options.trace_path;
+  const auto collapse_start = initialization_end;
   const standalone_decimator::DecimatorStats internal_stats =
       decimator.decimate(internal_options);
+  const auto collapse_end = std::chrono::steady_clock::now();
+  const auto compact_start = collapse_end;
   standalone_decimator::InputMesh compacted = decimator.compact_mesh();
-  const auto core_end = std::chrono::steady_clock::now();
+  const auto compact_end = std::chrono::steady_clock::now();
 
   SimplifyResult result;
+  const auto output_start = compact_end;
   result.mesh = copy_output(compacted);
-  result.stats = copy_stats(
-      internal_stats,
-      std::chrono::duration<double>(core_end - core_start).count());
+  const auto output_end = std::chrono::steady_clock::now();
+  result.stats = copy_stats(internal_stats);
+  result.stats.input_conversion_seconds =
+      std::chrono::duration<double>(input_end - input_start).count();
+  result.stats.initialization_seconds =
+      std::chrono::duration<double>(initialization_end - initialization_start).count();
+  result.stats.collapse_seconds =
+      std::chrono::duration<double>(collapse_end - collapse_start).count();
+  result.stats.compact_seconds =
+      std::chrono::duration<double>(compact_end - compact_start).count();
+  result.stats.output_conversion_seconds =
+      std::chrono::duration<double>(output_end - output_start).count();
+  result.stats.core_seconds =
+      result.stats.initialization_seconds + result.stats.collapse_seconds +
+      result.stats.compact_seconds;
   return result;
 }
 

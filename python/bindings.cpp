@@ -37,6 +37,11 @@ py::dict stats_dict(const meshutil::SimplifyStats &stats)
   result["rejected_flip"] = stats.rejected_flip;
   result["invalid_edges"] = stats.invalid_edges;
   result["target_reached"] = stats.target_reached;
+  result["input_conversion_seconds"] = stats.input_conversion_seconds;
+  result["initialization_seconds"] = stats.initialization_seconds;
+  result["collapse_seconds"] = stats.collapse_seconds;
+  result["compact_seconds"] = stats.compact_seconds;
+  result["output_conversion_seconds"] = stats.output_conversion_seconds;
   result["core_seconds"] = stats.core_seconds;
   return result;
 }

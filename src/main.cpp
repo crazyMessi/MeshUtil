@@ -116,6 +116,11 @@ int main(const int argc, char **argv)
               << ",\"rejected_topology\":" << stats.rejected_topology
               << ",\"rejected_flip\":" << stats.rejected_flip
               << ",\"invalid_edges\":" << stats.invalid_edges
+              << ",\"input_conversion_seconds\":" << stats.input_conversion_seconds
+              << ",\"initialization_seconds\":" << stats.initialization_seconds
+              << ",\"collapse_seconds\":" << stats.collapse_seconds
+              << ",\"compact_seconds\":" << stats.compact_seconds
+              << ",\"output_conversion_seconds\":" << stats.output_conversion_seconds
               << ",\"core_seconds\":" << stats.core_seconds
               << ",\"target_reached\":" << (stats.target_reached ? "true" : "false") << "}\n";
     return stats.target_reached ? 0 : 3;

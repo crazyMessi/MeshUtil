@@ -23,6 +23,11 @@ struct SimplifyStats {
   std::size_t rejected_flip = 0;
   std::size_t invalid_edges = 0;
   bool target_reached = false;
+  double input_conversion_seconds = 0.0;
+  double initialization_seconds = 0.0;
+  double collapse_seconds = 0.0;
+  double compact_seconds = 0.0;
+  double output_conversion_seconds = 0.0;
   double core_seconds = 0.0;
 };
 
