@@ -533,19 +533,56 @@ std::uint64_t morton_code_21(const Float3 &position,
                              const Float3 &minimum,
                              const Float3 &maximum) noexcept
 {
+  const auto spread = [](std::uint32_t value) noexcept {
+    std::uint64_t result = value & 0x1fffffU;
+    result = (result | result << 32) & 0x1f00000000ffffULL;
+    result = (result | result << 16) & 0x1f0000ff0000ffULL;
+    result = (result | result << 8) & 0x100f00f00f00f00fULL;
+    result = (result | result << 4) & 0x10c30c30c30c30c3ULL;
+    result = (result | result << 2) & 0x1249249249249249ULL;
+    return result;
+  };
   const std::uint32_t x =
       quantize_morton_axis(position.x, minimum.x, maximum.x);
   const std::uint32_t y =
       quantize_morton_axis(position.y, minimum.y, maximum.y);
   const std::uint32_t z =
       quantize_morton_axis(position.z, minimum.z, maximum.z);
-  std::uint64_t result = 0;
-  for (std::uint32_t bit = 0; bit < 21; ++bit) {
-    result |= static_cast<std::uint64_t>((x >> bit) & 1) << (3 * bit);
-    result |= static_cast<std::uint64_t>((y >> bit) & 1) << (3 * bit + 1);
-    result |= static_cast<std::uint64_t>((z >> bit) & 1) << (3 * bit + 2);
+  return spread(x) | spread(y) << 1 | spread(z) << 2;
+}
+
+std::size_t stable_radix_sort_morton(std::vector<MortonVertex> &values)
+{
+  constexpr std::size_t kRadixBits = 11;
+  constexpr std::size_t kRadixSize = std::size_t{1} << kRadixBits;
+  constexpr std::uint64_t kRadixMask = kRadixSize - 1;
+  constexpr std::size_t kPassCount = 6;
+  std::vector<MortonVertex> scratch(values.size());
+  std::vector<MortonVertex> *source = &values;
+  std::vector<MortonVertex> *destination = &scratch;
+  for (std::size_t pass = 0; pass < kPassCount; ++pass) {
+    std::array<std::size_t, kRadixSize> offsets{};
+    const std::size_t shift = pass * kRadixBits;
+    for (const MortonVertex &entry : *source) {
+      ++offsets[static_cast<std::size_t>((entry.morton >> shift) & kRadixMask)];
+    }
+    std::size_t prefix = 0;
+    for (std::size_t &offset : offsets) {
+      const std::size_t count = offset;
+      offset = prefix;
+      prefix += count;
+    }
+    for (const MortonVertex &entry : *source) {
+      const std::size_t bucket =
+          static_cast<std::size_t>((entry.morton >> shift) & kRadixMask);
+      (*destination)[offsets[bucket]++] = entry;
+    }
+    std::swap(source, destination);
   }
-  return result;
+  if (source != &values) {
+    values = std::move(*source);
+  }
+  return scratch.capacity() * sizeof(MortonVertex);
 }
 
 double fraction(const std::size_t numerator, const std::size_t denominator) noexcept
@@ -728,6 +765,21 @@ class QemDecimator::Impl {
     }
     stats_.partition_alive_vertices = alive_vertices;
 
+    std::fill(
+        topology_neighbor_stamps_.begin(), topology_neighbor_stamps_.end(), 0);
+    for (const Face &face : faces_) {
+      if (!face.alive) {
+        continue;
+      }
+      for (const VertexId vertex : face.vertices) {
+        if (topology_neighbor_stamps_[vertex] ==
+            std::numeric_limits<std::uint32_t>::max())
+        {
+          throw std::runtime_error("vertex face-corner degree exceeds uint32 capacity");
+        }
+        ++topology_neighbor_stamps_[vertex];
+      }
+    }
     std::vector<MortonVertex> morton_vertices;
     morton_vertices.reserve(alive_vertices);
     std::uint64_t total_face_corner_load = 0;
@@ -736,26 +788,18 @@ class QemDecimator::Impl {
       if (!vertex.alive) {
         continue;
       }
-      const std::size_t degree = vertex_face_count(vertex_id);
-      if (degree > std::numeric_limits<std::uint32_t>::max()) {
-        throw std::runtime_error("vertex face-corner degree exceeds uint32 capacity");
-      }
+      const std::uint32_t degree = topology_neighbor_stamps_[vertex_id];
       morton_vertices.push_back({
           morton_code_21(vertex.position, bounds_minimum, bounds_maximum),
           vertex_id,
-          static_cast<std::uint32_t>(degree),
+          degree,
       });
       total_face_corner_load += degree;
     }
-    std::sort(
-        morton_vertices.begin(),
-        morton_vertices.end(),
-        [](const MortonVertex &left, const MortonVertex &right) {
-          if (left.morton != right.morton) {
-            return left.morton < right.morton;
-          }
-          return left.vertex < right.vertex;
-        });
+    const std::size_t radix_transient_bytes =
+        stable_radix_sort_morton(morton_vertices);
+    std::fill(
+        topology_neighbor_stamps_.begin(), topology_neighbor_stamps_.end(), 0);
 
     const std::uint16_t invalid_owner = std::numeric_limits<std::uint16_t>::max();
     std::vector<std::uint16_t> owner(vertices_.size(), invalid_owner);
@@ -872,6 +916,7 @@ class QemDecimator::Impl {
         fraction(stats_.partition_eligible_edge_count, alive_edges);
     stats_.partition_transient_bytes =
         morton_vertices.capacity() * sizeof(MortonVertex) +
+        radix_transient_bytes +
         owner.capacity() * sizeof(std::uint16_t) +
         boundary_distance.capacity() * sizeof(std::uint8_t) +
         partition_loads.capacity() * sizeof(std::size_t);
@@ -912,6 +957,21 @@ class QemDecimator::Impl {
       bounds_maximum.z = std::max(bounds_maximum.z, vertex.position.z);
     }
 
+    std::fill(
+        topology_neighbor_stamps_.begin(), topology_neighbor_stamps_.end(), 0);
+    for (const Face &face : faces_) {
+      if (!face.alive) {
+        continue;
+      }
+      for (const VertexId vertex : face.vertices) {
+        if (topology_neighbor_stamps_[vertex] ==
+            std::numeric_limits<std::uint32_t>::max())
+        {
+          throw std::runtime_error("vertex face-corner degree exceeds uint32 capacity");
+        }
+        ++topology_neighbor_stamps_[vertex];
+      }
+    }
     std::vector<MortonVertex> morton_vertices;
     morton_vertices.reserve(alive_vertices);
     std::uint64_t total_face_corner_load = 0;
@@ -920,26 +980,17 @@ class QemDecimator::Impl {
       if (!vertex.alive) {
         continue;
       }
-      const std::size_t degree = vertex_face_count(vertex_id);
-      if (degree > std::numeric_limits<std::uint32_t>::max()) {
-        throw std::runtime_error("vertex face-corner degree exceeds uint32 capacity");
-      }
+      const std::uint32_t degree = topology_neighbor_stamps_[vertex_id];
       morton_vertices.push_back({
           morton_code_21(vertex.position, bounds_minimum, bounds_maximum),
           vertex_id,
-          static_cast<std::uint32_t>(degree),
+          degree,
       });
       total_face_corner_load += degree;
     }
-    std::sort(
-        morton_vertices.begin(),
-        morton_vertices.end(),
-        [](const MortonVertex &left, const MortonVertex &right) {
-          if (left.morton != right.morton) {
-            return left.morton < right.morton;
-          }
-          return left.vertex < right.vertex;
-        });
+    stable_radix_sort_morton(morton_vertices);
+    std::fill(
+        topology_neighbor_stamps_.begin(), topology_neighbor_stamps_.end(), 0);
 
     std::uint64_t load_prefix = 0;
     for (std::size_t index = 0; index < morton_vertices.size(); ++index) {
