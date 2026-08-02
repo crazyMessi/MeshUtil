@@ -6,8 +6,11 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -62,6 +65,47 @@ meshutil::Mesh grid(const std::size_t side)
     }
   }
   return mesh;
+}
+
+using Position = std::array<float, 3>;
+using BoundarySegment = std::pair<Position, Position>;
+
+std::set<BoundarySegment> boundary_segments(const meshutil::Mesh &mesh)
+{
+  std::map<std::pair<meshutil::Index, meshutil::Index>, std::size_t> edge_counts;
+  for (std::size_t triangle = 0; triangle < mesh.triangle_count(); ++triangle) {
+    const meshutil::Index *indices = &mesh.triangles[triangle * 3];
+    for (std::size_t corner = 0; corner < 3; ++corner) {
+      meshutil::Index first = indices[corner];
+      meshutil::Index second = indices[(corner + 1) % 3];
+      if (first > second) {
+        std::swap(first, second);
+      }
+      ++edge_counts[{first, second}];
+    }
+  }
+
+  std::set<BoundarySegment> result;
+  for (const auto &[indices, count] : edge_counts) {
+    if (count != 1) {
+      continue;
+    }
+    Position first = {
+        mesh.positions[indices.first * 3],
+        mesh.positions[indices.first * 3 + 1],
+        mesh.positions[indices.first * 3 + 2],
+    };
+    Position second = {
+        mesh.positions[indices.second * 3],
+        mesh.positions[indices.second * 3 + 1],
+        mesh.positions[indices.second * 3 + 2],
+    };
+    if (second < first) {
+      std::swap(first, second);
+    }
+    result.emplace(first, second);
+  }
+  return result;
 }
 
 void require(const bool condition, const std::string &message)
@@ -185,6 +229,9 @@ int main()
   require(
       partition_result.mesh.triangle_count() <= partition_options.target_faces,
       "partition path exceeded the target face count");
+  require(
+      boundary_segments(partition_result.mesh) == boundary_segments(grid_input),
+      "partition path changed the open-boundary edge set");
   meshutil::validate_mesh(partition_result.mesh.view());
 
   meshutil::SimplifyOptions parallel_partition_options = partition_options;
@@ -200,6 +247,10 @@ int main()
   require(
       parallel_partition_result.mesh.triangles == partition_result.mesh.triangles,
       "parallel partition-local triangles are not deterministic");
+  require(
+      boundary_segments(parallel_partition_result.mesh) ==
+          boundary_segments(grid_input),
+      "parallel partition path changed the open-boundary edge set");
 
   meshutil::SimplifyOptions repeated_partition_options = partition_options;
   repeated_partition_options.threads = 4;

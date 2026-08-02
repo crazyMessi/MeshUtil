@@ -69,6 +69,12 @@ partition halos, then rebuilds one global heap for exact-target cleanup.
 uses private heap entries and scratch per worker while sharing one
 `EdgeId -> heap position` array, so RSS does not grow with the worker count.
 
+Vertices incident to an input open-boundary edge are preserved. Edges touching
+those vertices are not collapse candidates in either the partition-local or
+global stage. This keeps the input boundary edge set and its vertex positions
+unchanged, so boundary component count, loop count, branch structure, and total
+length cannot increase during simplification.
+
 Validated CD-safe presets are:
 
 - about 18M to 3M faces: `partition_local_count=128`, `threads=32`;
@@ -94,6 +100,8 @@ global cleanup, but the normalized cost guard still applies in every epoch.
 - Blender-style near-zero QEM topology fallback at cost epsilon `1e-12`;
 - manifold/boundary edge eligibility, Blender-style topology rejection, and
   face flip/near-degeneracy rejection;
+- exact preservation of the input open-boundary edge set and endpoint
+  positions;
 - Blender-style float heap costs with cost-only comparisons, including
   equal-cost insertion bubbling and removal behavior;
 - Blender 4.0.2 `BKE_mesh_calc_edges` initial edge ordering: `OrderedEdge`
@@ -108,6 +116,24 @@ global cleanup, but the normalized cost guard still applies in every epoch.
   collapse implementation;
 - atomic PLY output through a same-directory temporary file and rename;
 - optional JSONL candidate/collapse trace.
+
+## Quality Audit
+
+`tools/mesh_quality.py` supports both a single-mesh inspection and an
+input-to-output hard gate:
+
+```bash
+python3 tools/mesh_quality.py output.ply \
+  --reference input.ply \
+  --output temp_output/quality_delta.json
+```
+
+The comparison requires every degeneracy and topology metric to satisfy
+`output <= input`. It covers repeated-index, zero-area, and near-zero-area
+faces; invalid data and isolated vertices; non-manifold edges; connected
+components; and open-boundary edge, vertex, component, loop, chain, branch,
+endpoint, and total-length metrics. Near-zero area uses the input bounding-box
+diagonal for both meshes.
 
 ## Build and Install
 

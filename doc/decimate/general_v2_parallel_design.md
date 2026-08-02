@@ -330,3 +330,61 @@ Final guarded performance:
 | S -> 1.0M | 34.02 s | 88.24 s | 2.59x | 4.394M |
 | S -> 0.3M | 37.14 s | 90.34 s | 2.43x | 4.394M |
 | M1 -> 3.0M | 36.86 s | 149.76 s | 4.06x | 3.882M |
+
+## Incremental topology and open-boundary gate
+
+Absolute output validity is insufficient for dirty production inputs. Every
+quality metric is compared against the corresponding input and must satisfy
+`output <= input`. Near-zero face area uses
+`1e-14 * input_bbox_diagonal^2` for both meshes. The hard-gate set is:
+
+- repeated-index, zero-area, and near-zero-area face counts;
+- invalid data and isolated vertex counts;
+- non-manifold edge count;
+- connected component count over used vertices and mesh edges;
+- open-boundary edge and vertex counts;
+- boundary graph component, loop, open-chain, branched-component, endpoint,
+  and branch-vertex counts;
+- open-boundary total length.
+
+The first guarded implementation passed edge manifold checks but failed this
+expanded gate. It reduced the number of boundary edges while increasing
+boundary branches and total length. The root cause was that an interior edge
+incident to an input boundary vertex could still collapse, and its unconstrained
+QEM target could move that boundary vertex away from the original boundary.
+
+The accepted implementation marks every vertex incident to an input one-face
+edge. Any edge touching a marked vertex is excluded from both local and global
+heaps. This freezes only the sparse input open-boundary neighborhood while
+leaving the interior QEM and parallel partition framework unchanged. It also
+provides a stronger invariant than an output-only audit: the complete boundary
+edge set and endpoint positions remain identical.
+
+Final input-to-output results:
+
+| Scene | Degenerate / near-degenerate | Non-manifold edges | Components | Boundary graph and length |
+| --- | --- | --- | --- | --- |
+| S -> 3.0M | 1 / 326 -> 0 / 1 | 0 -> 0 | 1 -> 1 | exact unchanged |
+| S -> 1.0M | 1 / 326 -> 0 / 1 | 0 -> 0 | 1 -> 1 | exact unchanged |
+| S -> 0.3M | 1 / 326 -> 0 / 0 | 0 -> 0 | 1 -> 1 | exact unchanged |
+| M1 -> 3.0M | 0 / 235 -> 0 / 2 | 0 -> 0 | 1 -> 1 | exact unchanged |
+
+CD was recomputed after the boundary fix using the same three seeds, one
+million area-weighted samples per direction, and complete-triangle cuBVH
+queries:
+
+| Scene | Topology-safe V2 / V1 mean CD | Result |
+| --- | ---: | --- |
+| S -> 3.0M | 1.051x | pass |
+| S -> 1.0M | 1.006x | pass |
+| S -> 0.3M | 1.021x | pass |
+| M1 -> 3.0M | 1.017x | pass |
+
+The boundary invariant did not materially change performance:
+
+| Scene | Wall | Peak RSS | Speedup vs General V1 |
+| --- | ---: | ---: | ---: |
+| S -> 3.0M | 23.82 s | 4.24 GiB | 3.19x |
+| S -> 1.0M | 34.34 s | 4.24 GiB | 2.57x |
+| S -> 0.3M | 36.41 s | 4.24 GiB | 2.48x |
+| M1 -> 3.0M | 38.34 s | 6.27 GiB | 3.91x |

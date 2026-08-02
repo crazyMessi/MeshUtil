@@ -292,6 +292,7 @@ struct Vertex {
   Quadric quadric;
   EdgeId disk_head = kInvalidEdgeId;
   bool alive = true;
+  bool boundary = false;
 };
 
 struct DiskLink {
@@ -775,6 +776,7 @@ class QemDecimator::Impl {
       for (FaceId face_id = 0; face_id < faces_.size(); ++face_id) {
         attach_face_to_initial_edges(face_id);
       }
+      mark_boundary_vertices();
     }
     build_vertex_normals();
     build_quadrics();
@@ -2411,6 +2413,16 @@ class QemDecimator::Impl {
     }
   }
 
+  void mark_boundary_vertices()
+  {
+    for (const Edge &edge : edges_) {
+      if (edge.alive() && edge.radial_count() == 1) {
+        vertices_[edge.first].boundary = true;
+        vertices_[edge.second].boundary = true;
+      }
+    }
+  }
+
   void deactivate_edge(const EdgeId edge_id, WorkerContext &worker)
   {
     Edge &edge = edges_[edge_id];
@@ -2453,7 +2465,9 @@ class QemDecimator::Impl {
   {
     const Edge &edge = edges_[edge_id];
     const std::size_t face_count = edge_face_count(edge_id);
-    if (!edge.alive() || face_count == 0 || face_count > 2) {
+    if (!edge.alive() || face_count == 0 || face_count > 2 ||
+        vertices_[edge.first].boundary || vertices_[edge.second].boundary)
+    {
       return static_cast<float>(kInvalidCost);
     }
     const Vec3 target = calculate_target(edge);
@@ -2518,7 +2532,9 @@ class QemDecimator::Impl {
   {
     const Edge &edge = edges_[edge_id];
     const std::size_t face_count = edge_face_count(edge_id);
-    if (!edge.alive() || face_count == 0 || face_count > 2) {
+    if (!edge.alive() || face_count == 0 || face_count > 2 ||
+        vertices_[edge.first].boundary || vertices_[edge.second].boundary)
+    {
       return true;
     }
     for (const VertexId endpoint : {edge.first, edge.second}) {
