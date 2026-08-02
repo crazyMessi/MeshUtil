@@ -182,6 +182,20 @@ int main()
       "partition path exceeded the target face count");
   meshutil::validate_mesh(partition_result.mesh.view());
 
+  meshutil::SimplifyOptions parallel_partition_options = partition_options;
+  parallel_partition_options.threads = 4;
+  const meshutil::SimplifyResult parallel_partition_result =
+      meshutil::simplify(grid_input.view(), parallel_partition_options);
+  require(
+      parallel_partition_result.stats.partition_local_workers == 4,
+      "partition-local worker count was not reported");
+  require(
+      parallel_partition_result.mesh.positions == partition_result.mesh.positions,
+      "parallel partition-local positions are not deterministic");
+  require(
+      parallel_partition_result.mesh.triangles == partition_result.mesh.triangles,
+      "parallel partition-local triangles are not deterministic");
+
   meshutil::SimplifyOptions skipped_partition_options = options;
   skipped_partition_options.partition_local_count = 16;
   skipped_partition_options.partition_local_target_faces =

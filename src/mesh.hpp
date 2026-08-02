@@ -48,6 +48,7 @@ void write_binary_triangle_ply_atomic(const std::string &path, const InputMesh &
 
 struct DecimatorOptions {
   std::size_t target_faces = 0;
+  unsigned threads = 1;
   std::size_t partition_local_count = 0;
   std::size_t partition_local_target_faces = 0;
   MemoryMode memory_mode = MemoryMode::Balanced;
@@ -93,6 +94,10 @@ struct DecimatorStats {
   double partition_local_plan_seconds = 0.0;
   double partition_local_heap_build_seconds = 0.0;
   double partition_local_collapse_seconds = 0.0;
+  unsigned partition_local_workers = 0;
+  double partition_local_parallel_seconds = 0.0;
+  double partition_local_worker_seconds = 0.0;
+  double partition_local_worker_max_seconds = 0.0;
   std::size_t global_cleanup_input_faces = 0;
   std::size_t global_cleanup_collapsed_edges = 0;
   double global_heap_rebuild_seconds = 0.0;

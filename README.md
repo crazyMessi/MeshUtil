@@ -46,6 +46,7 @@ out_vertices, out_faces, stats = meshutil.simplify(
     vertices,
     faces,
     target_faces=3_000_000,
+    threads=16,
     partition_local_count=128,
     partition_local_target_faces=3_200_000,
 )
@@ -56,7 +57,11 @@ out_vertices, out_faces, stats = meshutil.simplify(
 face count. The local epoch keeps the existing QEM collapse implementation,
 protects partition halos, then rebuilds one global heap for exact-target
 cleanup. This interface is currently single-worker; it is the behavior baseline
-for the next multi-worker implementation.
+cleanup. `threads` controls only how fixed
+partitions are scheduled; partition count, quotas, local heap order, and output
+remain fixed. The implementation uses private heap entries and scratch per
+worker while sharing one `EdgeId -> heap position` array, so RSS does not grow
+with the worker count.
 
 ## Implemented
 

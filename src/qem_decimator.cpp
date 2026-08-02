@@ -3,6 +3,7 @@
 #include "indexed_min_heap.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cfloat>
 #include <chrono>
@@ -13,10 +14,12 @@
 #include <iomanip>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -586,6 +589,35 @@ class TraceWriter {
 
 class QemDecimator::Impl {
  public:
+  struct WorkerContext {
+    WorkerContext() = default;
+
+    explicit WorkerContext(
+        IndexedMinHeap<EdgeId>::PositionStorage &shared_positions,
+        const IndexedMinHeap<EdgeId>::Position heap_tag,
+        const IndexedMinHeap<EdgeId>::Position heap_tag_count)
+        : heap(shared_positions, heap_tag, heap_tag_count)
+    {}
+
+    IndexedMinHeap<EdgeId> heap;
+    std::vector<LoopId> loop_scratch;
+    std::vector<std::pair<EdgeId, EdgeId>> splice_edges_scratch;
+    std::uint32_t topology_stamp = 0;
+    std::uint16_t active_partition = std::numeric_limits<std::uint16_t>::max();
+    const std::vector<std::uint16_t> *local_owner = nullptr;
+    const std::vector<std::uint8_t> *local_boundary_distance = nullptr;
+    std::size_t collapsed_edges = 0;
+    std::size_t rejected_topology = 0;
+    std::size_t rejected_flip = 0;
+    std::size_t invalid_edges = 0;
+    std::size_t removed_faces = 0;
+    std::size_t stalled_partitions = 0;
+    std::size_t heap_entries = 0;
+    double heap_build_seconds = 0.0;
+    double collapse_seconds = 0.0;
+    double worker_seconds = 0.0;
+  };
+
   Impl(InputMesh mesh,
        const MemoryMode memory_mode,
        const bool build_global_heap)
@@ -598,7 +630,7 @@ class QemDecimator::Impl {
       throw std::runtime_error("mesh exceeds stable 32-bit ID capacity");
     }
 
-    splice_edges_scratch_.reserve(2);
+    global_worker_.splice_edges_scratch.reserve(2);
     vertices_.reserve(mesh.vertices.size());
     for (const Float3 &position : mesh.vertices) {
       Vertex vertex;
@@ -636,10 +668,10 @@ class QemDecimator::Impl {
     }
     build_vertex_normals();
     build_quadrics();
-    heap_.prepare(edges_.size());
+    global_worker_.heap.prepare(edges_.size());
     if (build_global_heap) {
       for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
-        update_edge_cost(edge_id);
+        update_edge_cost(edge_id, global_worker_);
       }
     }
   }
@@ -1055,17 +1087,20 @@ class QemDecimator::Impl {
     return result;
   }
 
-  bool local_vertex_allowed(const VertexId vertex) const noexcept
+  bool local_vertex_allowed(const VertexId vertex,
+                            const WorkerContext &worker) const noexcept
   {
-    return local_owner_ != nullptr && local_boundary_distance_ != nullptr &&
-           vertex < local_owner_->size() &&
-           (*local_owner_)[vertex] == active_partition_ &&
-           (*local_boundary_distance_)[vertex] > 2;
+    return worker.local_owner != nullptr &&
+           worker.local_boundary_distance != nullptr &&
+           vertex < worker.local_owner->size() &&
+           (*worker.local_owner)[vertex] == worker.active_partition &&
+           (*worker.local_boundary_distance)[vertex] > 2;
   }
 
-  bool local_edge_static_allowed(const EdgeId edge_id) const noexcept
+  bool local_edge_static_allowed(const EdgeId edge_id,
+                                 const WorkerContext &worker) const noexcept
   {
-    if (local_owner_ == nullptr) {
+    if (worker.local_owner == nullptr) {
       return true;
     }
     if (edge_id >= edges_.size()) {
@@ -1073,23 +1108,24 @@ class QemDecimator::Impl {
     }
     const Edge &edge = edges_[edge_id];
     return edge.alive &&
-           (*local_owner_)[edge.first] == active_partition_ &&
-           (*local_owner_)[edge.second] == active_partition_ &&
-           (*local_boundary_distance_)[edge.first] > 4 &&
-           (*local_boundary_distance_)[edge.second] > 4;
+           (*worker.local_owner)[edge.first] == worker.active_partition &&
+           (*worker.local_owner)[edge.second] == worker.active_partition &&
+           (*worker.local_boundary_distance)[edge.first] > 4 &&
+           (*worker.local_boundary_distance)[edge.second] > 4;
   }
 
-  bool local_edge_dynamic_allowed(const EdgeId edge_id) const
+  bool local_edge_dynamic_allowed(const EdgeId edge_id,
+                                  const WorkerContext &worker) const
   {
-    if (local_owner_ == nullptr) {
+    if (worker.local_owner == nullptr) {
       return true;
     }
-    if (!local_edge_static_allowed(edge_id)) {
+    if (!local_edge_static_allowed(edge_id, worker)) {
       return false;
     }
     const Edge &edge = edges_[edge_id];
     for (const VertexId endpoint : {edge.first, edge.second}) {
-      if (!local_vertex_allowed(endpoint)) {
+      if (!local_vertex_allowed(endpoint, worker)) {
         return false;
       }
       const EdgeId disk_head = vertices_[endpoint].disk_head;
@@ -1101,7 +1137,7 @@ class QemDecimator::Impl {
         const Edge &incident = edges_[incident_id];
         const VertexId neighbor =
             incident.first == endpoint ? incident.second : incident.first;
-        if (!local_vertex_allowed(neighbor)) {
+        if (!local_vertex_allowed(neighbor, worker)) {
           return false;
         }
         const EdgeId neighbor_head = vertices_[neighbor].disk_head;
@@ -1115,7 +1151,7 @@ class QemDecimator::Impl {
               neighbor_edge.first == neighbor ?
                   neighbor_edge.second :
                   neighbor_edge.first;
-          if (!local_vertex_allowed(second_neighbor)) {
+          if (!local_vertex_allowed(second_neighbor, worker)) {
             return false;
           }
           neighbor_edge_id = disk_edge_next(neighbor_edge_id, neighbor);
@@ -1126,17 +1162,24 @@ class QemDecimator::Impl {
     return true;
   }
 
-  std::size_t collapse_from_active_heap(const std::size_t target_faces,
+  std::size_t collapse_from_active_heap(WorkerContext &worker,
+                                        const std::size_t target_faces,
                                         const std::size_t removal_limit,
-                                        TraceWriter &trace)
+                                        TraceWriter *trace)
   {
-    const std::size_t start_faces = active_faces_;
-    while (active_faces_ > target_faces && !heap_.empty()) {
-      const IndexedMinHeap<EdgeId>::Entry candidate = heap_.pop();
+    const std::size_t start_removed_faces = worker.removed_faces;
+    const bool local = worker.local_owner != nullptr;
+    while ((local || active_faces_ > target_faces) &&
+           worker.removed_faces - start_removed_faces < removal_limit &&
+           !worker.heap.empty())
+    {
+      const IndexedMinHeap<EdgeId>::Entry candidate = worker.heap.pop();
       if (candidate.key >= kInvalidCost) {
-        trace.event("stopped", [&](std::ostream &stream) {
-          stream << ",\"reason\":\"no_valid_edges\",\"faces\":" << active_faces_;
-        });
+        if (trace != nullptr) {
+          trace->event("stopped", [&](std::ostream &stream) {
+            stream << ",\"reason\":\"no_valid_edges\",\"faces\":" << active_faces_;
+          });
+        }
         break;
       }
       if (candidate.value >= edges_.size() || !edges_[candidate.value].alive) {
@@ -1146,61 +1189,72 @@ class QemDecimator::Impl {
       Edge &edge = edges_[candidate.value];
       const std::size_t faces_removed = edge_face_count(candidate.value);
       if (faces_removed == 0 || faces_removed > 2) {
-        ++stats_.invalid_edges;
-        set_invalid_edge(candidate.value);
+        ++worker.invalid_edges;
+        set_invalid_edge(candidate.value, worker);
         continue;
       }
-      const std::size_t removed_so_far = start_faces - active_faces_;
+      const std::size_t removed_so_far =
+          worker.removed_faces - start_removed_faces;
       if (faces_removed > removal_limit - std::min(removal_limit, removed_so_far)) {
         continue;
       }
-      if (!local_edge_dynamic_allowed(candidate.value)) {
+      if (!local_edge_dynamic_allowed(candidate.value, worker)) {
         continue;
       }
 
       const Vec3 target = calculate_collapse_target(edge);
-      trace.event("candidate", [&](std::ostream &stream) {
-        stream << ",\"edge\":" << candidate.value << ",\"v_keep\":" << edge.first
-               << ",\"v_remove\":" << edge.second << ",\"cost\":" << candidate.key
-               << ",\"target\":[" << target.x << ',' << target.y << ',' << target.z << ']'
-               << ",\"faces_before\":" << active_faces_;
-      });
-
-      if (collapse_has_degenerate_topology(candidate.value)) {
-        ++stats_.rejected_topology;
-        set_invalid_edge(candidate.value);
-        trace.event("reject", [&](std::ostream &stream) {
+      if (trace != nullptr) {
+        trace->event("candidate", [&](std::ostream &stream) {
           stream << ",\"edge\":" << candidate.value
-                 << ",\"reason\":\"degenerate_topology\"";
+                 << ",\"v_keep\":" << edge.first
+                 << ",\"v_remove\":" << edge.second
+                 << ",\"cost\":" << candidate.key
+                 << ",\"target\":[" << target.x << ',' << target.y << ',' << target.z << ']'
+                 << ",\"faces_before\":" << active_faces_;
         });
-        continue;
-      }
-      if (collapse_has_flip(candidate.value, target)) {
-        ++stats_.rejected_flip;
-        set_invalid_edge(candidate.value);
-        trace.event("reject", [&](std::ostream &stream) {
-          stream << ",\"edge\":" << candidate.value
-                 << ",\"reason\":\"degenerate_flip\"";
-        });
-        continue;
       }
 
-      collapse_edge(candidate.value, target);
-      ++stats_.collapsed_edges;
-      trace.event("collapse", [&](std::ostream &stream) {
-        stream << ",\"edge\":" << candidate.value
-               << ",\"removed_faces\":" << faces_removed
-               << ",\"faces_after\":" << active_faces_;
-      });
-      if (start_faces - active_faces_ >= removal_limit) {
-        break;
+      if (collapse_has_degenerate_topology(candidate.value, worker)) {
+        ++worker.rejected_topology;
+        set_invalid_edge(candidate.value, worker);
+        if (trace != nullptr) {
+          trace->event("reject", [&](std::ostream &stream) {
+            stream << ",\"edge\":" << candidate.value
+                   << ",\"reason\":\"degenerate_topology\"";
+          });
+        }
+        continue;
+      }
+      if (collapse_has_flip(candidate.value, target, worker)) {
+        ++worker.rejected_flip;
+        set_invalid_edge(candidate.value, worker);
+        if (trace != nullptr) {
+          trace->event("reject", [&](std::ostream &stream) {
+            stream << ",\"edge\":" << candidate.value
+                   << ",\"reason\":\"degenerate_flip\"";
+          });
+        }
+        continue;
+      }
+
+      collapse_edge(candidate.value, target, worker);
+      ++worker.collapsed_edges;
+      if (!local) {
+        active_faces_ -= faces_removed;
+      }
+      if (trace != nullptr) {
+        trace->event("collapse", [&](std::ostream &stream) {
+          stream << ",\"edge\":" << candidate.value
+                 << ",\"removed_faces\":" << faces_removed
+                 << ",\"faces_after\":" << active_faces_;
+        });
       }
     }
-    return start_faces - active_faces_;
+    return worker.removed_faces - start_removed_faces;
   }
 
   void run_partition_local_stage(const DecimatorOptions &options,
-                                 TraceWriter &trace)
+                                 TraceWriter *trace)
   {
     stats_.partition_local_count = options.partition_local_count;
     stats_.partition_local_target_faces = options.partition_local_target_faces;
@@ -1217,47 +1271,144 @@ class QemDecimator::Impl {
             std::chrono::steady_clock::now() - plan_start)
             .count();
 
-    heap_.clear();
-    local_owner_ = &plan.owner;
-    local_boundary_distance_ = &plan.boundary_distance;
+    global_worker_.heap.clear();
+    const unsigned worker_count = static_cast<unsigned>(
+        std::min<std::size_t>(std::max(1U, options.threads), plan.count));
+    stats_.partition_local_workers = worker_count;
+    std::size_t max_partition_edges = 0;
     for (std::size_t partition = 0; partition < plan.count; ++partition) {
-      active_partition_ = static_cast<std::uint16_t>(partition);
-      const auto build_start = std::chrono::steady_clock::now();
-      for (std::size_t index = plan.eligible_edge_offsets[partition];
-           index < plan.eligible_edge_offsets[partition + 1];
-           ++index)
-      {
-        update_edge_cost(plan.eligible_edges[index]);
-      }
-      stats_.partition_local_heap_entries += heap_.size();
-      stats_.partition_local_heap_build_seconds +=
-          std::chrono::duration<double>(
-              std::chrono::steady_clock::now() - build_start)
-              .count();
-
-      const std::size_t partition_start_faces = active_faces_;
-      const auto collapse_start = std::chrono::steady_clock::now();
-      collapse_from_active_heap(
-          options.partition_local_target_faces, quotas[partition], trace);
-      stats_.partition_local_collapse_seconds +=
-          std::chrono::duration<double>(
-              std::chrono::steady_clock::now() - collapse_start)
-              .count();
-      const std::size_t removed = partition_start_faces - active_faces_;
-      if (removed < quotas[partition]) {
-        ++stats_.partition_local_stalled_count;
-      }
-      heap_.clear();
+      max_partition_edges = std::max(
+          max_partition_edges,
+          plan.eligible_edge_offsets[partition + 1] -
+              plan.eligible_edge_offsets[partition]);
     }
-    local_owner_ = nullptr;
-    local_boundary_distance_ = nullptr;
-    active_partition_ = std::numeric_limits<std::uint16_t>::max();
+
+    using WorkerPtr = std::unique_ptr<WorkerContext>;
+    std::vector<WorkerPtr> workers;
+    workers.reserve(worker_count);
+    IndexedMinHeap<EdgeId>::PositionStorage &shared_positions =
+        global_worker_.heap.position_storage();
+    for (unsigned worker_index = 0; worker_index < worker_count; ++worker_index) {
+      workers.push_back(std::make_unique<WorkerContext>(
+          shared_positions,
+          static_cast<IndexedMinHeap<EdgeId>::Position>(worker_index),
+          static_cast<IndexedMinHeap<EdgeId>::Position>(worker_count)));
+      workers.back()->heap.reserve_entries(max_partition_edges);
+      workers.back()->local_owner = &plan.owner;
+      workers.back()->local_boundary_distance = &plan.boundary_distance;
+    }
+
+    std::atomic<std::size_t> next_partition{0};
+    std::atomic<bool> stop{false};
+    std::mutex failure_mutex;
+    std::exception_ptr failure;
+    const auto parallel_start = std::chrono::steady_clock::now();
+    auto run_worker = [&](WorkerContext &worker) {
+      const auto worker_start = std::chrono::steady_clock::now();
+      try {
+        while (!stop.load(std::memory_order_relaxed)) {
+          const std::size_t partition =
+              next_partition.fetch_add(1, std::memory_order_relaxed);
+          if (partition >= plan.count) {
+            break;
+          }
+          worker.active_partition = static_cast<std::uint16_t>(partition);
+          const auto build_start = std::chrono::steady_clock::now();
+          for (std::size_t index = plan.eligible_edge_offsets[partition];
+               index < plan.eligible_edge_offsets[partition + 1];
+               ++index)
+          {
+            update_edge_cost(plan.eligible_edges[index], worker);
+          }
+          worker.heap_entries += worker.heap.size();
+          worker.heap_build_seconds +=
+              std::chrono::duration<double>(
+                  std::chrono::steady_clock::now() - build_start)
+                  .count();
+
+          const auto collapse_start = std::chrono::steady_clock::now();
+          const std::size_t removed = collapse_from_active_heap(
+              worker,
+              options.partition_local_target_faces,
+              quotas[partition],
+              worker_count == 1 ? trace : nullptr);
+          worker.collapse_seconds +=
+              std::chrono::duration<double>(
+                  std::chrono::steady_clock::now() - collapse_start)
+                  .count();
+          if (removed < quotas[partition]) {
+            ++worker.stalled_partitions;
+          }
+          worker.heap.clear();
+        }
+      }
+      catch (...) {
+        stop.store(true, std::memory_order_relaxed);
+        std::lock_guard<std::mutex> lock(failure_mutex);
+        if (failure == nullptr) {
+          failure = std::current_exception();
+        }
+      }
+      worker.worker_seconds =
+          std::chrono::duration<double>(
+              std::chrono::steady_clock::now() - worker_start)
+              .count();
+    };
+
+    std::vector<std::thread> threads;
+    threads.reserve(worker_count > 0 ? worker_count - 1 : 0);
+    try {
+      for (unsigned worker_index = 1; worker_index < worker_count; ++worker_index) {
+        threads.emplace_back(run_worker, std::ref(*workers[worker_index]));
+      }
+    }
+    catch (...) {
+      stop.store(true, std::memory_order_relaxed);
+      for (std::thread &thread : threads) {
+        thread.join();
+      }
+      throw;
+    }
+    run_worker(*workers.front());
+    for (std::thread &thread : threads) {
+      thread.join();
+    }
+    stats_.partition_local_parallel_seconds =
+        std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - parallel_start)
+            .count();
+    if (failure != nullptr) {
+      std::rethrow_exception(failure);
+    }
+
+    std::size_t total_removed_faces = 0;
+    for (const WorkerPtr &worker : workers) {
+      total_removed_faces += worker->removed_faces;
+      stats_.collapsed_edges += worker->collapsed_edges;
+      stats_.rejected_topology += worker->rejected_topology;
+      stats_.rejected_flip += worker->rejected_flip;
+      stats_.invalid_edges += worker->invalid_edges;
+      stats_.partition_local_stalled_count += worker->stalled_partitions;
+      stats_.partition_local_heap_entries += worker->heap_entries;
+      stats_.partition_local_heap_build_seconds += worker->heap_build_seconds;
+      stats_.partition_local_collapse_seconds += worker->collapse_seconds;
+      stats_.partition_local_worker_seconds += worker->worker_seconds;
+      stats_.partition_local_worker_max_seconds = std::max(
+          stats_.partition_local_worker_max_seconds, worker->worker_seconds);
+    }
+    if (total_removed_faces > active_faces_) {
+      throw std::runtime_error("partition-local removed-face count overflow");
+    }
+    active_faces_ -= total_removed_faces;
     stats_.partition_local_output_faces = active_faces_;
     stats_.partition_local_collapsed_edges = stats_.collapsed_edges;
 
+    std::fill(
+        topology_neighbor_stamps_.begin(), topology_neighbor_stamps_.end(), 0);
+    global_worker_.topology_stamp = 0;
     const auto rebuild_start = std::chrono::steady_clock::now();
     for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
-      update_edge_cost(edge_id);
+      update_edge_cost(edge_id, global_worker_);
     }
     stats_.global_heap_rebuild_seconds =
         std::chrono::duration<double>(
@@ -1282,19 +1433,26 @@ class QemDecimator::Impl {
     if (options.partition_local_count != 0 &&
         active_faces_ > options.partition_local_target_faces)
     {
-      run_partition_local_stage(options, trace);
+      run_partition_local_stage(options, &trace);
     }
     stats_.global_cleanup_input_faces = active_faces_;
-    const std::size_t cleanup_start_collapses = stats_.collapsed_edges;
+    const std::size_t cleanup_start_collapses = global_worker_.collapsed_edges;
     const auto cleanup_start = std::chrono::steady_clock::now();
     collapse_from_active_heap(
-        options.target_faces, std::numeric_limits<std::size_t>::max(), trace);
+        global_worker_,
+        options.target_faces,
+        std::numeric_limits<std::size_t>::max(),
+        &trace);
     stats_.global_cleanup_seconds =
         std::chrono::duration<double>(
             std::chrono::steady_clock::now() - cleanup_start)
             .count();
     stats_.global_cleanup_collapsed_edges =
-        stats_.collapsed_edges - cleanup_start_collapses;
+        global_worker_.collapsed_edges - cleanup_start_collapses;
+    stats_.collapsed_edges += global_worker_.collapsed_edges;
+    stats_.rejected_topology += global_worker_.rejected_topology;
+    stats_.rejected_flip += global_worker_.rejected_flip;
+    stats_.invalid_edges += global_worker_.invalid_edges;
 
     stats_.input_vertices = input_vertices_;
     stats_.input_faces = input_faces_;
@@ -1727,7 +1885,9 @@ class QemDecimator::Impl {
     }
   }
 
-  void splice_edge(const EdgeId destination, const EdgeId source)
+  void splice_edge(const EdgeId destination,
+                   const EdgeId source,
+                   WorkerContext &worker)
   {
     Edge &source_edge = edges_[source];
     Edge &destination_edge = edges_[destination];
@@ -1741,7 +1901,7 @@ class QemDecimator::Impl {
       radial_loop_remove(source, loop_id);
       radial_loop_append(destination, loop_id);
     }
-    deactivate_edge(source);
+    deactivate_edge(source, worker);
   }
 
   LoopId disk_faceloop_find_first(const VertexId vertex) const
@@ -1951,13 +2111,13 @@ class QemDecimator::Impl {
     }
   }
 
-  void deactivate_edge(const EdgeId edge_id)
+  void deactivate_edge(const EdgeId edge_id, WorkerContext &worker)
   {
     Edge &edge = edges_[edge_id];
     if (!edge.alive) {
       return;
     }
-    heap_.remove(edge_id);
+    worker.heap.remove(edge_id);
     disk_edge_remove(edge_id, edge.first);
     disk_edge_remove(edge_id, edge.second);
     edge.radial_head = kInvalidLoopId;
@@ -2020,36 +2180,38 @@ class QemDecimator::Impl {
     return cost;
   }
 
-  void update_edge_cost(const EdgeId edge_id)
+  void update_edge_cost(const EdgeId edge_id, WorkerContext &worker)
   {
     if (edge_id >= edges_.size() || !edges_[edge_id].alive) {
-      heap_.remove(edge_id);
+      if (worker.local_owner == nullptr) {
+        worker.heap.remove(edge_id);
+      }
       return;
     }
-    if (!local_edge_static_allowed(edge_id)) {
-      heap_.remove(edge_id);
+    if (!local_edge_static_allowed(edge_id, worker)) {
       return;
     }
     const std::size_t face_count = edge_face_count(edge_id);
     if (face_count == 0 || face_count > 2) {
-      heap_.remove(edge_id);
+      worker.heap.remove(edge_id);
       return;
     }
     const float cost = calculate_edge_cost(edge_id);
     if (cost >= kInvalidCost) {
-      ++stats_.invalid_edges;
+      ++worker.invalid_edges;
     }
-    heap_.update(edge_id, cost);
+    worker.heap.update(edge_id, cost);
   }
 
-  void set_invalid_edge(const EdgeId edge_id)
+  void set_invalid_edge(const EdgeId edge_id, WorkerContext &worker)
   {
     if (edge_id < edges_.size() && edges_[edge_id].alive) {
-      heap_.update(edge_id, static_cast<float>(kInvalidCost));
+      worker.heap.update(edge_id, static_cast<float>(kInvalidCost));
     }
   }
 
-  bool collapse_has_degenerate_topology(const EdgeId edge_id)
+  bool collapse_has_degenerate_topology(const EdgeId edge_id,
+                                        WorkerContext &worker)
   {
     const Edge &edge = edges_[edge_id];
     const std::size_t face_count = edge_face_count(edge_id);
@@ -2072,13 +2234,12 @@ class QemDecimator::Impl {
       } while (incident_id != disk_head);
     }
 
-    if (topology_stamp_ > std::numeric_limits<std::uint32_t>::max() - 3) {
-      std::fill(topology_neighbor_stamps_.begin(), topology_neighbor_stamps_.end(), 0);
-      topology_stamp_ = 0;
+    if (worker.topology_stamp > std::numeric_limits<std::uint32_t>::max() - 3) {
+      throw std::runtime_error("partition-local topology stamp capacity exceeded");
     }
-    const std::uint32_t first_neighbor_stamp = ++topology_stamp_;
-    const std::uint32_t shared_neighbor_stamp = ++topology_stamp_;
-    const std::uint32_t opposite_vertex_stamp = ++topology_stamp_;
+    const std::uint32_t first_neighbor_stamp = ++worker.topology_stamp;
+    const std::uint32_t shared_neighbor_stamp = ++worker.topology_stamp;
+    const std::uint32_t opposite_vertex_stamp = ++worker.topology_stamp;
 
     const EdgeId first_disk_head = vertices_[edge.first].disk_head;
     EdgeId first_incident_id = first_disk_head;
@@ -2128,13 +2289,15 @@ class QemDecimator::Impl {
     return unmatched_shared_neighbors != 0;
   }
 
-  bool collapse_has_flip(const EdgeId edge_id, const Vec3 &target)
+  bool collapse_has_flip(const EdgeId edge_id,
+                         const Vec3 &target,
+                         WorkerContext &worker)
   {
     const Edge &edge = edges_[edge_id];
     const Float3 optimized_position = to_float3(target);
     for (const VertexId endpoint : {edge.first, edge.second}) {
-      collect_loops_of_vertex(endpoint, loop_scratch_);
-      for (const LoopId loop_id : loop_scratch_) {
+      collect_loops_of_vertex(endpoint, worker.loop_scratch);
+      for (const LoopId loop_id : worker.loop_scratch) {
         const FaceId face_id = loop_face(loop_id);
         const Face &face = faces_[face_id];
         if (!face.alive ||
@@ -2165,7 +2328,9 @@ class QemDecimator::Impl {
     return false;
   }
 
-  void collapse_edge(const EdgeId edge_id, const Vec3 &target)
+  void collapse_edge(const EdgeId edge_id,
+                     const Vec3 &target,
+                     WorkerContext &worker)
   {
     const Edge edge_before = edges_[edge_id];
     const VertexId keep = edge_before.first;
@@ -2190,37 +2355,37 @@ class QemDecimator::Impl {
                           dot_float3(direction, direction);
     }
 
-    loop_scratch_.clear();
+    worker.loop_scratch.clear();
     LoopId collapse_loop = edge_before.radial_head;
     do {
-      loop_scratch_.push_back(collapse_loop);
+      worker.loop_scratch.push_back(collapse_loop);
       collapse_loop = loops_[collapse_loop].radial_next;
     } while (collapse_loop != edge_before.radial_head);
 
-    splice_edges_scratch_.clear();
-    splice_edges_scratch_.reserve(loop_scratch_.size());
-    for (const LoopId loop_id : loop_scratch_) {
+    worker.splice_edges_scratch.clear();
+    worker.splice_edges_scratch.reserve(worker.loop_scratch.size());
+    for (const LoopId loop_id : worker.loop_scratch) {
       const Face &face = faces_[loop_face(loop_id)];
       const Loop &previous = loops_[loop_previous(loop_id)];
       const Loop &next = loops_[loop_next(loop_id)];
       if (face.vertices[loop_corner(loop_id)] == remove) {
-        splice_edges_scratch_.emplace_back(previous.edge, next.edge);
+        worker.splice_edges_scratch.emplace_back(previous.edge, next.edge);
       }
       else {
-        splice_edges_scratch_.emplace_back(next.edge, previous.edge);
+        worker.splice_edges_scratch.emplace_back(next.edge, previous.edge);
       }
     }
 
-    for (const LoopId loop_id : loop_scratch_) {
+    for (const LoopId loop_id : worker.loop_scratch) {
       kill_face(loop_face(loop_id));
     }
-    active_faces_ -= loop_scratch_.size();
-    deactivate_edge(edge_id);
+    worker.removed_faces += worker.loop_scratch.size();
+    deactivate_edge(edge_id, worker);
 
-    splice_vertex(keep, remove, splice_edges_scratch_);
+    splice_vertex(keep, remove, worker.splice_edges_scratch);
 
-    for (const std::pair<EdgeId, EdgeId> &splice : splice_edges_scratch_) {
-      splice_edge(splice.second, splice.first);
+    for (const std::pair<EdgeId, EdgeId> &splice : worker.splice_edges_scratch) {
+      splice_edge(splice.second, splice.first, worker);
     }
 
     vertices_[keep].position = optimized_position;
@@ -2240,13 +2405,13 @@ class QemDecimator::Impl {
     if (disk_head != kInvalidEdgeId) {
       EdgeId incident_id = disk_head;
       do {
-        update_edge_cost(incident_id);
+        update_edge_cost(incident_id, worker);
         incident_id = disk_edge_next(incident_id, keep);
       } while (incident_id != disk_head);
     }
 
-    collect_loops_of_vertex(keep, loop_scratch_);
-    for (const LoopId loop_id : loop_scratch_) {
+    collect_loops_of_vertex(keep, worker.loop_scratch);
+    for (const LoopId loop_id : worker.loop_scratch) {
       const VertexId loop_vertex =
           faces_[loop_face(loop_id)].vertices[loop_corner(loop_id)];
       const Edge &previous_edge = edges_[loops_[loop_previous(loop_id)].edge];
@@ -2257,7 +2422,7 @@ class QemDecimator::Impl {
       if (edges_[outer_id].first == keep || edges_[outer_id].second == keep) {
         throw std::runtime_error("internal error: face fan outer edge contains keep vertex");
       }
-      update_edge_cost(outer_id);
+      update_edge_cost(outer_id, worker);
     }
   }
 
@@ -2275,13 +2440,7 @@ class QemDecimator::Impl {
   std::vector<Face> faces_;
   std::vector<Loop> loops_;
   std::vector<std::uint32_t> topology_neighbor_stamps_;
-  std::uint32_t topology_stamp_ = 0;
-  std::vector<LoopId> loop_scratch_;
-  std::vector<std::pair<EdgeId, EdgeId>> splice_edges_scratch_;
-  IndexedMinHeap<EdgeId> heap_;
-  const std::vector<std::uint16_t> *local_owner_ = nullptr;
-  const std::vector<std::uint8_t> *local_boundary_distance_ = nullptr;
-  std::uint16_t active_partition_ = std::numeric_limits<std::uint16_t>::max();
+  WorkerContext global_worker_;
   std::size_t active_faces_ = 0;
   std::size_t input_vertices_ = 0;
   std::size_t input_faces_ = 0;

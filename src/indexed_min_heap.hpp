@@ -10,10 +10,60 @@ namespace standalone_decimator {
 
 template<typename Value> class IndexedMinHeap {
  public:
+  using Position = std::uint32_t;
+  using PositionStorage = std::vector<Position>;
+  static constexpr Position kMissingPosition =
+      std::numeric_limits<Position>::max();
+
   struct Entry {
     float key = 0.0f;
     Value value{};
   };
+
+  IndexedMinHeap() noexcept : positions_(owned_positions_) {}
+
+  explicit IndexedMinHeap(PositionStorage &positions,
+                          const Position heap_tag = 0,
+                          const Position heap_tag_count = 1)
+      : positions_(positions),
+        heap_tag_(heap_tag),
+        tagged_positions_(true)
+  {
+    if (heap_tag_count == 0 || heap_tag_ >= heap_tag_count) {
+      throw std::invalid_argument("indexed heap tag is out of range");
+    }
+    Position value = heap_tag_count;
+    do {
+      ++tag_bits_;
+      value >>= 1;
+    } while (value != 0);
+    tag_mask_ = (Position{1} << tag_bits_) - 1;
+    if (heap_tag_ + 1 > tag_mask_) {
+      throw std::invalid_argument("indexed heap tag exceeds encoded capacity");
+    }
+  }
+
+  ~IndexedMinHeap()
+  {
+    if (&positions_ != &owned_positions_) {
+      clear();
+    }
+  }
+
+  IndexedMinHeap(const IndexedMinHeap &) = delete;
+  IndexedMinHeap &operator=(const IndexedMinHeap &) = delete;
+  IndexedMinHeap(IndexedMinHeap &&) = delete;
+  IndexedMinHeap &operator=(IndexedMinHeap &&) = delete;
+
+  PositionStorage &position_storage() noexcept
+  {
+    return positions_;
+  }
+
+  const PositionStorage &position_storage() const noexcept
+  {
+    return positions_;
+  }
 
   bool empty() const noexcept
   {
@@ -28,41 +78,46 @@ template<typename Value> class IndexedMinHeap {
   void clear() noexcept
   {
     for (const Entry &entry : heap_) {
-      positions_[value_index(entry.value)] = kMissing;
+      positions_[value_index(entry.value)] = kMissingPosition;
     }
     heap_.clear();
   }
 
-  void reserve(const std::size_t capacity)
+  void reserve_entries(const std::size_t capacity)
   {
-    if (capacity > kMaxHeapSize) {
+    if (capacity > max_heap_size()) {
       throw std::length_error("indexed heap capacity exceeds 32-bit positions");
     }
     heap_.reserve(capacity);
   }
 
+  void reserve(const std::size_t capacity)
+  {
+    reserve_entries(capacity);
+  }
+
   void reserve_values(const std::size_t value_count)
   {
     if (value_count > positions_.size()) {
-      positions_.resize(value_count, kMissing);
+      positions_.resize(value_count, kMissingPosition);
     }
   }
 
   void prepare(const std::size_t value_count)
   {
-    reserve(value_count);
+    reserve_entries(value_count);
     reserve_values(value_count);
   }
 
   void update(const Value value, const float key)
   {
     const std::size_t index = value_index(value);
-    if (index >= positions_.size() || positions_[index] == kMissing) {
+    if (index >= positions_.size() || positions_[index] == kMissingPosition) {
       insert_at_index(value, key, index);
       return;
     }
 
-    const std::size_t position = positions_[index];
+    const std::size_t position = decode_position(positions_[index]);
     const float previous_key = heap_[position].key;
     if (key < previous_key) {
       heap_[position].key = key;
@@ -77,21 +132,21 @@ template<typename Value> class IndexedMinHeap {
   bool remove(const Value value)
   {
     const std::size_t index = value_index(value);
-    if (index >= positions_.size() || positions_[index] == kMissing) {
+    if (index >= positions_.size() || positions_[index] == kMissingPosition) {
       return false;
     }
 
-    std::size_t position = positions_[index];
+    std::size_t position = decode_position(positions_[index]);
     if (position > 0) {
       const Entry entry = heap_[position];
       do {
         const std::size_t parent_position = parent(position);
         heap_[position] = heap_[parent_position];
-        positions_[value_index(heap_[position].value)] = static_cast<Position>(position);
+        set_position(heap_[position].value, position);
         position = parent_position;
       } while (position > 0);
       heap_.front() = entry;
-      positions_[index] = 0;
+      positions_[index] = encode_position(0);
     }
 
     pop_min();
@@ -107,10 +162,6 @@ template<typename Value> class IndexedMinHeap {
   }
 
  private:
-  using Position = std::uint32_t;
-  static constexpr Position kMissing = std::numeric_limits<Position>::max();
-  static constexpr std::size_t kMaxHeapSize = static_cast<std::size_t>(kMissing);
-
   static std::size_t value_index(const Value value) noexcept
   {
     return static_cast<std::size_t>(value);
@@ -144,16 +195,16 @@ template<typename Value> class IndexedMinHeap {
   void insert_at_index(const Value value, const float key, const std::size_t index)
   {
     ensure_position(index);
-    if (positions_[index] != kMissing) {
+    if (positions_[index] != kMissingPosition) {
       throw std::runtime_error("duplicate indexed heap insertion");
     }
-    if (heap_.size() >= kMaxHeapSize) {
+    if (heap_.size() >= max_heap_size()) {
       throw std::length_error("indexed heap exceeds 32-bit positions");
     }
 
     const std::size_t position = heap_.size();
     heap_.push_back({key, value});
-    positions_[index] = static_cast<Position>(position);
+    positions_[index] = encode_position(position);
     sift_up(position);
   }
 
@@ -162,10 +213,10 @@ template<typename Value> class IndexedMinHeap {
     const Entry result = heap_.front();
     if (heap_.size() > 1) {
       heap_.front() = heap_.back();
-      positions_[value_index(heap_.front().value)] = 0;
+      set_position(heap_.front().value, 0);
     }
     heap_.pop_back();
-    positions_[value_index(result.value)] = kMissing;
+    positions_[value_index(result.value)] = kMissingPosition;
     if (!heap_.empty()) {
       sift_down(0);
     }
@@ -186,7 +237,7 @@ template<typename Value> class IndexedMinHeap {
     const Entry entry = heap_[position];
     do {
       heap_[position] = heap_[parent_position];
-      positions_[value_index(heap_[position].value)] = static_cast<Position>(position);
+      set_position(heap_[position].value, position);
       position = parent_position;
       if (position == 0) {
         break;
@@ -195,7 +246,7 @@ template<typename Value> class IndexedMinHeap {
     } while (!cost_less(heap_[parent_position], entry));
 
     heap_[position] = entry;
-    positions_[value_index(entry.value)] = static_cast<Position>(position);
+    set_position(entry.value, position);
   }
 
   std::size_t sift_down_child(const std::size_t position,
@@ -230,17 +281,68 @@ template<typename Value> class IndexedMinHeap {
     const Entry entry = heap_[position];
     do {
       heap_[position] = heap_[smallest];
-      positions_[value_index(heap_[position].value)] = static_cast<Position>(position);
+      set_position(heap_[position].value, position);
       position = smallest;
       smallest = sift_down_child(position, entry, heap_size);
     } while (smallest != position);
 
     heap_[position] = entry;
-    positions_[value_index(entry.value)] = static_cast<Position>(position);
+    set_position(entry.value, position);
+  }
+
+  std::size_t max_heap_size() const noexcept
+  {
+    return tagged_positions_ ?
+               static_cast<std::size_t>(kMissingPosition >> tag_bits_) + 1 :
+               static_cast<std::size_t>(kMissingPosition);
+  }
+
+  Position encode_position(const std::size_t position) const
+  {
+    if (position >= max_heap_size()) {
+      throw std::length_error("indexed heap position exceeds tagged capacity");
+    }
+    if (!tagged_positions_) {
+      return static_cast<Position>(position);
+    }
+    return static_cast<Position>(
+        (static_cast<Position>(position) << tag_bits_) | (heap_tag_ + 1));
+  }
+
+  std::size_t decode_position(const Position encoded) const
+  {
+    if (encoded == kMissingPosition) {
+      throw std::runtime_error("indexed heap value is missing");
+    }
+    if (!tagged_positions_) {
+      const std::size_t position = encoded;
+      if (position >= heap_.size()) {
+        throw std::runtime_error("indexed heap position is out of range");
+      }
+      return position;
+    }
+    if ((encoded & tag_mask_) != heap_tag_ + 1) {
+      throw std::runtime_error("indexed heap value belongs to another heap");
+    }
+    const std::size_t position = encoded >> tag_bits_;
+    if (position >= heap_.size()) {
+      throw std::runtime_error("indexed heap position is out of range");
+    }
+    return position;
+  }
+
+  void set_position(const Value value, const std::size_t position)
+  {
+    positions_[value_index(value)] = encode_position(position);
   }
 
   std::vector<Entry> heap_;
-  std::vector<Position> positions_;
+  PositionStorage owned_positions_;
+  PositionStorage &positions_;
+  Position heap_tag_ = 0;
+  Position tag_bits_ = 0;
+  Position tag_mask_ = 0;
+  bool tagged_positions_ = false;
 };
 
 }  // namespace standalone_decimator

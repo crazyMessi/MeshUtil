@@ -188,3 +188,38 @@ This is approximately equal to the General V1 single-worker wall of 76.03
 seconds while moving most collapse work into independent persistent local
 queues. It is therefore accepted as the behavior baseline for multi-worker
 implementation, not yet as a final performance win.
+
+## Multi-worker partition scheduling
+
+The multi-worker implementation preserves the fixed partition plan and quota
+schedule. Workers fetch partition IDs dynamically, but each partition keeps its
+own deterministic local heap order. Per-worker state contains heap entries,
+loop/splice scratch, counters, and a topology stamp. Workers share:
+
+- stable vertex, edge, face, and loop arrays;
+- the read-only partition owner and halo arrays;
+- one pre-sized `EdgeId -> heap position` array.
+
+The four-ring initial eligibility rule and the dynamic closed two-hop ownership
+check ensure that simultaneously running partitions do not read or write the
+same topology or heap-position slots. Active face count and statistics are
+reduced only after the worker barrier. Global heap rebuild and cleanup remain
+serial.
+
+On the fixed S case, all `1/2/4/8/16/32T` runs produced the same output SHA-256
+and the same valid topology. Peak RSS stayed at approximately 4.14 GiB:
+
+| Threads | Wall | Overall speedup | Local-stage wall | Local-stage speedup |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 76.04 s | 1.00x | 52.31 s | 1.00x |
+| 2 | 49.15 s | 1.55x | 26.70 s | 1.96x |
+| 4 | 36.53 s | 2.08x | 14.04 s | 3.73x |
+| 8 | 30.82 s | 2.47x | 7.59 s | 6.89x |
+| 16 | 26.30 s | 2.89x | 4.12 s | 12.70x |
+| 32 | 26.46 s | 2.87x | 4.14 s | 12.64x |
+
+The local-collapse stage continues scaling well beyond eight workers. Overall
+wall saturates at 16 workers because initialization (about 12 seconds),
+partition planning (about 6.5 seconds), output I/O, and global cleanup are still
+serial. The next optimization target is therefore fixed serial work rather than
+more local-collapse workers.

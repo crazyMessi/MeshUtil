@@ -148,6 +148,11 @@ SimplifyStats copy_stats(const standalone_decimator::DecimatorStats &stats)
       stats.partition_local_heap_build_seconds;
   result.partition_local_collapse_seconds =
       stats.partition_local_collapse_seconds;
+  result.partition_local_workers = stats.partition_local_workers;
+  result.partition_local_parallel_seconds = stats.partition_local_parallel_seconds;
+  result.partition_local_worker_seconds = stats.partition_local_worker_seconds;
+  result.partition_local_worker_max_seconds =
+      stats.partition_local_worker_max_seconds;
   result.global_cleanup_input_faces = stats.global_cleanup_input_faces;
   result.global_cleanup_collapsed_edges = stats.global_cleanup_collapsed_edges;
   result.global_heap_rebuild_seconds = stats.global_heap_rebuild_seconds;
@@ -244,9 +249,11 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   if (options.target_faces > mesh.triangle_count) {
     throw std::invalid_argument("target_faces exceeds the input triangle count");
   }
-  if (options.threads != 0 && options.threads != 1) {
+  if (options.partition_local_count == 0 &&
+      options.threads != 0 && options.threads != 1)
+  {
     throw std::invalid_argument(
-        "the baseline QEM backend currently supports threads=0 or threads=1");
+        "threads greater than 1 require partition_local_count");
   }
   if (!valid_partition_count(options.partition_dry_run_count)) {
     throw std::invalid_argument(
@@ -286,6 +293,7 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(mesh.triangle_count, options.target_faces);
+  internal_options.threads = options.threads == 0 ? 1 : options.threads;
   internal_options.partition_local_count =
       run_partition_local ? options.partition_local_count : 0;
   internal_options.partition_local_target_faces =
@@ -329,9 +337,11 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
   if (options.target_faces > input_faces) {
     throw std::invalid_argument("target_faces exceeds the input triangle count");
   }
-  if (options.threads != 0 && options.threads != 1) {
+  if (options.partition_local_count == 0 &&
+      options.threads != 0 && options.threads != 1)
+  {
     throw std::invalid_argument(
-        "the baseline QEM backend currently supports threads=0 or threads=1");
+        "threads greater than 1 require partition_local_count");
   }
   if (!valid_partition_count(options.partition_dry_run_count)) {
     throw std::invalid_argument(
@@ -370,6 +380,7 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
   standalone_decimator::DecimatorOptions internal_options;
   internal_options.target_faces =
       effective_target(input_faces, options.target_faces);
+  internal_options.threads = options.threads == 0 ? 1 : options.threads;
   internal_options.partition_local_count =
       run_partition_local ? options.partition_local_count : 0;
   internal_options.partition_local_target_faces =

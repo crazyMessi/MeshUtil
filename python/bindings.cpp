@@ -74,6 +74,13 @@ py::dict stats_dict(const meshutil::SimplifyStats &stats)
       stats.partition_local_heap_build_seconds;
   result["partition_local_collapse_seconds"] =
       stats.partition_local_collapse_seconds;
+  result["partition_local_workers"] = stats.partition_local_workers;
+  result["partition_local_parallel_seconds"] =
+      stats.partition_local_parallel_seconds;
+  result["partition_local_worker_seconds"] =
+      stats.partition_local_worker_seconds;
+  result["partition_local_worker_max_seconds"] =
+      stats.partition_local_worker_max_seconds;
   result["global_cleanup_input_faces"] = stats.global_cleanup_input_faces;
   result["global_cleanup_collapsed_edges"] =
       stats.global_cleanup_collapsed_edges;

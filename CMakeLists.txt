@@ -3,6 +3,7 @@ project(MeshUtil VERSION 0.1.0 LANGUAGES CXX)
 
 include(CTest)
 include(CMakePackageConfigHelpers)
+find_package(Threads REQUIRED)
 
 option(MESHUTIL_BUILD_CLI "Build command-line tools" ON)
 option(MESHUTIL_BUILD_PYTHON "Build the pybind11 Python module" OFF)
@@ -25,6 +26,7 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 set_target_properties(meshutil PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(meshutil PRIVATE Threads::Threads)
 
 function(meshutil_apply_compile_options target)
   target_compile_options(

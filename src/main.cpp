@@ -17,6 +17,7 @@ struct Arguments {
   std::string output;
   std::string trace;
   meshutil::MemoryMode memory_mode = meshutil::MemoryMode::Balanced;
+  unsigned threads = 1;
   std::size_t target_faces = std::numeric_limits<std::size_t>::max();
   std::size_t partition_dry_run_count = 0;
   std::size_t partition_local_count = 0;
@@ -31,6 +32,7 @@ struct Arguments {
       "--target-faces COUNT [--partition-dry-run-count 16|32|64|128] "
       "[--partition-local-count 16|32|64|128 "
       "--partition-local-target-faces COUNT] "
+      "[--threads COUNT] "
       "[--memory-mode balanced|low] [--trace TRACE.jsonl]");
 }
 
@@ -64,6 +66,7 @@ Arguments parse_arguments(const int argc, char **argv)
              "--target-faces COUNT [--partition-dry-run-count 16|32|64|128] "
              "[--partition-local-count 16|32|64|128 "
              "--partition-local-target-faces COUNT] "
+             "[--threads COUNT] "
              "[--memory-mode balanced|low] [--trace TRACE.jsonl]\n";
       std::exit(0);
     }
@@ -88,6 +91,13 @@ Arguments parse_arguments(const int argc, char **argv)
     }
     else if (option == "--partition-local-target-faces") {
       arguments.partition_local_target_faces = parse_count(value);
+    }
+    else if (option == "--threads") {
+      const std::size_t threads = parse_count(value);
+      if (threads == 0 || threads > std::numeric_limits<unsigned>::max()) {
+        usage_error("--threads must be a positive unsigned integer");
+      }
+      arguments.threads = static_cast<unsigned>(threads);
     }
     else if (option == "--trace") {
       arguments.trace = value;
@@ -132,6 +142,7 @@ int main(const int argc, char **argv)
     meshutil::Mesh input = meshutil::read_mesh(arguments.input);
     meshutil::SimplifyOptions options;
     options.target_faces = arguments.target_faces;
+    options.threads = arguments.threads;
     options.partition_dry_run_count = arguments.partition_dry_run_count;
     options.partition_local_count = arguments.partition_local_count;
     options.partition_local_target_faces =
@@ -202,6 +213,13 @@ int main(const int argc, char **argv)
               << stats.partition_local_heap_build_seconds
               << ",\"partition_local_collapse_seconds\":"
               << stats.partition_local_collapse_seconds
+              << ",\"partition_local_workers\":" << stats.partition_local_workers
+              << ",\"partition_local_parallel_seconds\":"
+              << stats.partition_local_parallel_seconds
+              << ",\"partition_local_worker_seconds\":"
+              << stats.partition_local_worker_seconds
+              << ",\"partition_local_worker_max_seconds\":"
+              << stats.partition_local_worker_max_seconds
               << ",\"global_cleanup_input_faces\":"
               << stats.global_cleanup_input_faces
               << ",\"global_cleanup_collapsed_edges\":"
