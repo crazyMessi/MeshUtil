@@ -300,13 +300,48 @@ struct DiskLink {
 };
 
 struct Edge {
+  static constexpr std::uint32_t kAliveMask = std::uint32_t{1} << 31;
+  static constexpr std::uint32_t kRadialCountMask = kAliveMask - 1;
+
   VertexId first = 0;
   VertexId second = 0;
   DiskLink first_disk;
   DiskLink second_disk;
   LoopId radial_head = kInvalidLoopId;
-  bool alive = true;
+  std::uint32_t radial_state = kAliveMask;
+
+  bool alive() const noexcept
+  {
+    return (radial_state & kAliveMask) != 0;
+  }
+
+  std::size_t radial_count() const noexcept
+  {
+    return radial_state & kRadialCountMask;
+  }
+
+  void increment_radial_count()
+  {
+    if (radial_count() == kRadialCountMask) {
+      throw std::runtime_error("edge radial count exceeds 31-bit capacity");
+    }
+    ++radial_state;
+  }
+
+  void decrement_radial_count()
+  {
+    if (radial_count() == 0) {
+      throw std::runtime_error("edge radial count underflow");
+    }
+    --radial_state;
+  }
+
+  void deactivate() noexcept
+  {
+    radial_state &= kRadialCountMask;
+  }
 };
+static_assert(sizeof(Edge) == 32, "Edge layout must remain compact");
 
 struct Face {
   std::array<VertexId, 3> vertices{};
@@ -854,7 +889,7 @@ class QemDecimator::Impl {
     std::size_t alive_edges = 0;
     std::size_t cross_edges = 0;
     for (const Edge &edge : edges_) {
-      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+      if (!edge.alive() || edge.radial_head == kInvalidLoopId) {
         continue;
       }
       ++alive_edges;
@@ -870,7 +905,7 @@ class QemDecimator::Impl {
 
     for (std::uint8_t ring = 1; ring <= 4; ++ring) {
       for (const Edge &edge : edges_) {
-        if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+        if (!edge.alive() || edge.radial_head == kInvalidLoopId) {
           continue;
         }
         const bool first_frontier = boundary_distance[edge.first] == ring - 1;
@@ -914,7 +949,7 @@ class QemDecimator::Impl {
         fraction(stats_.partition_halo_face_count, active_faces_);
 
     for (const Edge &edge : edges_) {
-      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+      if (!edge.alive() || edge.radial_head == kInvalidLoopId) {
         continue;
       }
       if (owner[edge.first] == owner[edge.second] &&
@@ -1024,7 +1059,7 @@ class QemDecimator::Impl {
     }
 
     for (const Edge &edge : edges_) {
-      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+      if (!edge.alive() || edge.radial_head == kInvalidLoopId) {
         continue;
       }
       if (plan.owner[edge.first] != plan.owner[edge.second]) {
@@ -1034,7 +1069,7 @@ class QemDecimator::Impl {
     }
     for (std::uint8_t ring = 1; ring <= 4; ++ring) {
       for (const Edge &edge : edges_) {
-        if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+        if (!edge.alive() || edge.radial_head == kInvalidLoopId) {
           continue;
         }
         const bool first_frontier =
@@ -1068,7 +1103,7 @@ class QemDecimator::Impl {
 
     plan.eligible_edge_offsets.assign(partition_count + 1, 0);
     for (const Edge &edge : edges_) {
-      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+      if (!edge.alive() || edge.radial_head == kInvalidLoopId) {
         continue;
       }
       const std::uint16_t owner = plan.owner[edge.first];
@@ -1087,7 +1122,7 @@ class QemDecimator::Impl {
     std::vector<std::size_t> write_offsets = plan.eligible_edge_offsets;
     for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
       const Edge &edge = edges_[edge_id];
-      if (!edge.alive || edge.radial_head == kInvalidLoopId) {
+      if (!edge.alive() || edge.radial_head == kInvalidLoopId) {
         continue;
       }
       const std::uint16_t owner = plan.owner[edge.first];
@@ -1170,7 +1205,7 @@ class QemDecimator::Impl {
       return false;
     }
     const Edge &edge = edges_[edge_id];
-    return edge.alive &&
+    return edge.alive() &&
            (*worker.local_owner)[edge.first] == worker.active_partition &&
            (*worker.local_owner)[edge.second] == worker.active_partition &&
            (*worker.local_boundary_distance)[edge.first] > 4 &&
@@ -1245,7 +1280,7 @@ class QemDecimator::Impl {
         }
         break;
       }
-      if (candidate.value >= edges_.size() || !edges_[candidate.value].alive) {
+      if (candidate.value >= edges_.size() || !edges_[candidate.value].alive()) {
         continue;
       }
 
@@ -1672,7 +1707,7 @@ class QemDecimator::Impl {
 
     for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
       const Edge &edge = edges_[edge_id];
-      if (!edge.alive || edge_face_count(edge_id) != 1) {
+      if (!edge.alive() || edge_face_count(edge_id) != 1) {
         continue;
       }
       const Float3 face_normal =
@@ -1736,17 +1771,7 @@ class QemDecimator::Impl {
 
   std::size_t edge_face_count(const EdgeId edge_id) const noexcept
   {
-    const LoopId radial_head = edges_[edge_id].radial_head;
-    if (radial_head == kInvalidLoopId) {
-      return 0;
-    }
-    std::size_t result = 0;
-    LoopId loop_id = radial_head;
-    do {
-      ++result;
-      loop_id = loops_[loop_id].radial_next;
-    } while (loop_id != radial_head);
-    return result;
+    return edges_[edge_id].radial_count();
   }
 
   bool vertex_has_faces(const VertexId vertex) const noexcept
@@ -1807,6 +1832,9 @@ class QemDecimator::Impl {
   {
     Edge &edge = edges_[edge_id];
     Loop &loop = loops_[loop_id];
+    if ((edge.radial_head == kInvalidLoopId) != (edge.radial_count() == 0)) {
+      throw std::runtime_error("internal error: edge radial count is inconsistent");
+    }
     if (edge.radial_head == kInvalidLoopId) {
       edge.radial_head = loop_id;
       loop.radial_next = loop_id;
@@ -1823,12 +1851,16 @@ class QemDecimator::Impl {
       edge.radial_head = loop_id;
     }
     loop.edge = edge_id;
+    edge.increment_radial_count();
   }
 
   void radial_loop_remove(const EdgeId edge_id, const LoopId loop_id)
   {
     Edge &edge = edges_[edge_id];
     Loop &loop = loops_[loop_id];
+    if (edge.radial_count() == 0 || edge.radial_head == kInvalidLoopId) {
+      throw std::runtime_error("internal error: removing from an empty radial cycle");
+    }
     if (loop.radial_next != loop_id) {
       if (edge.radial_head == loop_id) {
         edge.radial_head = loop.radial_next;
@@ -1844,6 +1876,10 @@ class QemDecimator::Impl {
     }
     loop.radial_next = kInvalidLoopId;
     loop.radial_previous = kInvalidLoopId;
+    edge.decrement_radial_count();
+    if ((edge.radial_head == kInvalidLoopId) != (edge.radial_count() == 0)) {
+      throw std::runtime_error("internal error: edge radial count is inconsistent");
+    }
   }
 
   void kill_face(const FaceId face_id)
@@ -1922,7 +1958,7 @@ class QemDecimator::Impl {
         EdgeId destination_edge_id = destination_head;
         do {
           const Edge &destination_edge = edges_[destination_edge_id];
-          if (destination_edge.alive &&
+          if (destination_edge.alive() &&
               edge_key(destination_edge.first, destination_edge.second) ==
                   edge_key(edge.first, edge.second))
           {
@@ -2194,14 +2230,17 @@ class QemDecimator::Impl {
   void deactivate_edge(const EdgeId edge_id, WorkerContext &worker)
   {
     Edge &edge = edges_[edge_id];
-    if (!edge.alive) {
+    if (!edge.alive()) {
       return;
     }
     worker.heap.remove(edge_id);
     disk_edge_remove(edge_id, edge.first);
     disk_edge_remove(edge_id, edge.second);
+    if (edge.radial_count() != 0 || edge.radial_head != kInvalidLoopId) {
+      throw std::runtime_error("internal error: deactivating an edge with radial users");
+    }
     edge.radial_head = kInvalidLoopId;
-    edge.alive = false;
+    edge.deactivate();
   }
 
   Vec3 calculate_target(const Edge &edge) const noexcept
@@ -2230,7 +2269,7 @@ class QemDecimator::Impl {
   {
     const Edge &edge = edges_[edge_id];
     const std::size_t face_count = edge_face_count(edge_id);
-    if (!edge.alive || face_count == 0 || face_count > 2) {
+    if (!edge.alive() || face_count == 0 || face_count > 2) {
       return static_cast<float>(kInvalidCost);
     }
     const Vec3 target = calculate_target(edge);
@@ -2262,7 +2301,7 @@ class QemDecimator::Impl {
 
   void update_edge_cost(const EdgeId edge_id, WorkerContext &worker)
   {
-    if (edge_id >= edges_.size() || !edges_[edge_id].alive) {
+    if (edge_id >= edges_.size() || !edges_[edge_id].alive()) {
       if (worker.local_owner == nullptr) {
         worker.heap.remove(edge_id);
       }
@@ -2285,7 +2324,7 @@ class QemDecimator::Impl {
 
   void set_invalid_edge(const EdgeId edge_id, WorkerContext &worker)
   {
-    if (edge_id < edges_.size() && edges_[edge_id].alive) {
+    if (edge_id < edges_.size() && edges_[edge_id].alive()) {
       worker.heap.update(edge_id, static_cast<float>(kInvalidCost));
     }
   }
@@ -2295,7 +2334,7 @@ class QemDecimator::Impl {
   {
     const Edge &edge = edges_[edge_id];
     const std::size_t face_count = edge_face_count(edge_id);
-    if (!edge.alive || face_count == 0 || face_count > 2) {
+    if (!edge.alive() || face_count == 0 || face_count > 2) {
       return true;
     }
     for (const VertexId endpoint : {edge.first, edge.second}) {
@@ -2307,7 +2346,7 @@ class QemDecimator::Impl {
       do {
         const Edge &incident = edges_[incident_id];
         const std::size_t incident_face_count = edge_face_count(incident_id);
-        if (!incident.alive || incident_face_count == 0 || incident_face_count > 2) {
+        if (!incident.alive() || incident_face_count == 0 || incident_face_count > 2) {
           return true;
         }
         incident_id = disk_edge_next(incident_id, endpoint);

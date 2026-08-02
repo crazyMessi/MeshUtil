@@ -244,3 +244,16 @@ partition output also stayed byte-identical. Measured results:
 The temporary remap is released immediately after topology construction. This
 is an accepted speed/memory tradeoff; low-memory mode remains available when
 peak RSS is more important than throughput.
+
+## Constant-time edge radial counts
+
+`Edge` uses its existing 32-byte layout to store an exact 31-bit radial count
+and one alive bit. Radial append/remove operations maintain the count, replacing
+repeated radial-cycle walks in cost, topology, and boundary checks. Internal
+consistency guards reject count/head mismatches.
+
+Default formal outputs remain 7/7 SHA-identical, fixed partition outputs remain
+byte-identical, and `sizeof(Edge)` remains 32 bytes. Measured wall reductions:
+
+- S P128, 32 workers: 20.25 -> 20.03 seconds.
+- M1 P64, 16 workers: 36.08 -> 35.08 seconds.
