@@ -107,7 +107,10 @@ struct DecimatorStats {
 
 class QemDecimator {
  public:
-  QemDecimator(InputMesh mesh, MemoryMode memory_mode, bool build_global_heap);
+  QemDecimator(InputMesh mesh,
+               MemoryMode memory_mode,
+               bool build_global_heap,
+               unsigned threads);
   QemDecimator(const QemDecimator &) = delete;
   QemDecimator &operator=(const QemDecimator &) = delete;
   ~QemDecimator();

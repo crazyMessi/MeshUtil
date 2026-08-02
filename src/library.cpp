@@ -286,7 +286,8 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   standalone_decimator::QemDecimator decimator(
       std::move(input),
       internal_memory_mode(options.memory_mode),
-      !run_partition_local);
+      !run_partition_local,
+      options.threads == 0 ? 1 : options.threads);
   const auto initialization_end = std::chrono::steady_clock::now();
   decimator.partition_dry_run(options.partition_dry_run_count);
   const auto collapse_start = std::chrono::steady_clock::now();
@@ -373,7 +374,8 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
   standalone_decimator::QemDecimator decimator(
       std::move(input),
       internal_memory_mode(options.memory_mode),
-      !run_partition_local);
+      !run_partition_local,
+      options.threads == 0 ? 1 : options.threads);
   const auto initialization_end = std::chrono::steady_clock::now();
   decimator.partition_dry_run(options.partition_dry_run_count);
   const auto collapse_start = std::chrono::steady_clock::now();

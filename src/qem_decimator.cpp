@@ -704,8 +704,9 @@ class QemDecimator::Impl {
 
   Impl(InputMesh mesh,
        const MemoryMode memory_mode,
-       const bool build_global_heap)
-      : memory_mode_(memory_mode)
+       const bool build_global_heap,
+       const unsigned threads)
+      : memory_mode_(memory_mode), initialization_threads_(threads)
   {
     if (mesh.vertices.size() > std::numeric_limits<VertexId>::max() ||
         mesh.faces.size() > std::numeric_limits<FaceId>::max() ||
@@ -745,7 +746,12 @@ class QemDecimator::Impl {
 
     {
       loops_.resize(faces_.size() * kLoopsPerFace);
-      build_initial_edges_like_blender();
+      if (initialization_threads_ > 1 && faces_.size() >= 1000) {
+        build_initial_edges_parallel_like_blender();
+      }
+      else {
+        build_initial_edges_like_blender();
+      }
       for (FaceId face_id = 0; face_id < faces_.size(); ++face_id) {
         attach_face_to_initial_edges(face_id);
       }
@@ -2218,6 +2224,136 @@ class QemDecimator::Impl {
     }
   }
 
+  void build_initial_edges_parallel_like_blender()
+  {
+    constexpr std::size_t kMapCount = 8;
+    constexpr std::size_t kMapMask = kMapCount - 1;
+    if (faces_.size() > std::numeric_limits<std::size_t>::max() / 2) {
+      throw std::runtime_error("initial edge map capacity overflow");
+    }
+    const std::size_t unique_edge_guess =
+        memory_mode_ == MemoryMode::Low ?
+            (faces_.size() * 3 + 2 * kMapCount - 1) / (2 * kMapCount) :
+            faces_.size() * 2 / kMapCount;
+    std::vector<BlenderEdgeMap> edge_maps;
+    edge_maps.reserve(kMapCount);
+    for (std::size_t map_index = 0; map_index < kMapCount; ++map_index) {
+      edge_maps.emplace_back(unique_edge_guess);
+    }
+    std::array<EdgeId, kMapCount> temporary_edge_counts{};
+    std::mutex failure_mutex;
+    std::exception_ptr failure;
+    const auto build_map = [&](const std::size_t map_index) {
+      try {
+        EdgeId &temporary_edge_count = temporary_edge_counts[map_index];
+        BlenderEdgeMap &edge_map = edge_maps[map_index];
+        for (FaceId face_id = 0; face_id < faces_.size(); ++face_id) {
+          const Face &face = faces_[face_id];
+          VertexId previous = face.vertices.back();
+          std::size_t previous_corner = face.vertices.size() - 1;
+          for (std::size_t current_corner = 0;
+               current_corner < face.vertices.size();
+               ++current_corner)
+          {
+            const VertexId current = face.vertices[current_corner];
+            if (previous != current) {
+              const VertexId low = std::min(previous, current);
+              if ((static_cast<std::size_t>(low) & kMapMask) == map_index) {
+                const BlenderEdgeMap::LookupResult result =
+                    edge_map.lookup_or_add(previous, current, temporary_edge_count);
+                loops_[face_first_loop(face_id) +
+                       static_cast<LoopId>(previous_corner)]
+                    .edge = result.edge_id;
+                if (result.inserted) {
+                  if (temporary_edge_count == kInvalidEdgeId - 1) {
+                    throw std::runtime_error(
+                        "mesh exceeds stable 32-bit edge ID capacity");
+                  }
+                  ++temporary_edge_count;
+                }
+              }
+            }
+            previous = current;
+            previous_corner = current_corner;
+          }
+        }
+      }
+      catch (...) {
+        std::lock_guard<std::mutex> lock(failure_mutex);
+        if (failure == nullptr) {
+          failure = std::current_exception();
+        }
+      }
+    };
+
+    std::vector<std::thread> threads;
+    threads.reserve(kMapCount - 1);
+    try {
+      for (std::size_t map_index = 1; map_index < kMapCount; ++map_index) {
+        threads.emplace_back(build_map, map_index);
+      }
+    }
+    catch (...) {
+      for (std::thread &thread : threads) {
+        thread.join();
+      }
+      throw;
+    }
+    build_map(0);
+    for (std::thread &thread : threads) {
+      thread.join();
+    }
+    if (failure != nullptr) {
+      std::rethrow_exception(failure);
+    }
+
+    std::size_t edge_count = 0;
+    for (const BlenderEdgeMap &edge_map : edge_maps) {
+      if (edge_map.size() > std::numeric_limits<std::size_t>::max() - edge_count) {
+        throw std::runtime_error("initial edge count overflow");
+      }
+      edge_count += edge_map.size();
+    }
+    if (edge_count > std::numeric_limits<EdgeId>::max()) {
+      throw std::runtime_error("mesh exceeds stable 32-bit edge ID capacity");
+    }
+    std::array<std::vector<EdgeId>, kMapCount> temporary_to_final;
+    edges_.reserve(edge_count);
+    for (std::size_t map_index = 0; map_index < kMapCount; ++map_index) {
+      temporary_to_final[map_index].assign(
+          temporary_edge_counts[map_index], kInvalidEdgeId);
+      edge_maps[map_index].serialize_edges(
+          [&](const OrderedEdge &ordered_edge, const EdgeId temporary_edge_id) {
+            const EdgeId edge_id = static_cast<EdgeId>(edges_.size());
+            temporary_to_final[map_index][temporary_edge_id] = edge_id;
+            Edge edge;
+            edge.first = ordered_edge.low;
+            edge.second = ordered_edge.high;
+            edges_.push_back(std::move(edge));
+            disk_edge_append(edge_id, ordered_edge.low);
+            disk_edge_append(edge_id, ordered_edge.high);
+          });
+    }
+    for (FaceId face_id = 0; face_id < faces_.size(); ++face_id) {
+      const Face &face = faces_[face_id];
+      for (std::size_t corner = 0; corner < face.vertices.size(); ++corner) {
+        const VertexId low =
+            std::min(face.vertices[corner],
+                     face.vertices[(corner + 1) % face.vertices.size()]);
+        const std::size_t map_index = static_cast<std::size_t>(low) & kMapMask;
+        Loop &loop = loops_[face_first_loop(face_id) + static_cast<LoopId>(corner)];
+        if (loop.edge == kInvalidEdgeId ||
+            loop.edge >= temporary_to_final[map_index].size() ||
+            temporary_to_final[map_index][loop.edge] == kInvalidEdgeId)
+        {
+          throw std::runtime_error(
+              "internal error: parallel Blender edge map lost a face edge");
+        }
+        loop.edge = temporary_to_final[map_index][loop.edge];
+      }
+    }
+  }
+
   void attach_face_to_initial_edges(const FaceId face_id)
   {
     const LoopId first_loop = face_first_loop(face_id);
@@ -2564,13 +2700,15 @@ class QemDecimator::Impl {
   std::size_t input_vertices_ = 0;
   std::size_t input_faces_ = 0;
   MemoryMode memory_mode_ = MemoryMode::Balanced;
+  unsigned initialization_threads_ = 1;
   DecimatorStats stats_;
 };
 
 QemDecimator::QemDecimator(InputMesh mesh,
                            const MemoryMode memory_mode,
-                           const bool build_global_heap)
-    : impl_(new Impl(std::move(mesh), memory_mode, build_global_heap))
+                           const bool build_global_heap,
+                           const unsigned threads)
+    : impl_(new Impl(std::move(mesh), memory_mode, build_global_heap, threads))
 {}
 
 QemDecimator::~QemDecimator()

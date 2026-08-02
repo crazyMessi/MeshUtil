@@ -257,3 +257,17 @@ byte-identical, and `sizeof(Edge)` remains 32 bytes. Measured wall reductions:
 
 - S P128, 32 workers: 20.25 -> 20.03 seconds.
 - M1 P64, 16 workers: 36.08 -> 35.08 seconds.
+
+## Parallel initial edge-map shards
+
+Meshes above the Blender parallel-map threshold already use eight independent
+edge-map shards selected by `v_low & 7`. In the local multi-worker path, those
+eight maps are now constructed concurrently. Each shard still scans faces and
+corners in the original order, so its probing, growth, slot layout, map-major
+serialization, final edge IDs, disk order, and radial attach order are
+unchanged. The strict single-thread path remains serial.
+
+Fixed partition output SHA remains unchanged. With the final schedules:
+
+- S P128, 32 workers, local target 3.0M: 19.18 -> 18.37 seconds.
+- M1 P32, 32 workers, local target 3.05M: 34.52 -> 32.94 seconds.
