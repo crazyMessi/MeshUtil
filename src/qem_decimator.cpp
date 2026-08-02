@@ -1357,8 +1357,8 @@ class QemDecimator::Impl {
     return worker.removed_faces - start_removed_faces;
   }
 
-  void run_partition_local_stage(const DecimatorOptions &options,
-                                 TraceWriter *trace)
+  std::size_t run_partition_local_stage(const DecimatorOptions &options,
+                                        TraceWriter *trace)
   {
     stats_.partition_local_count = options.partition_local_count;
     stats_.partition_local_target_faces = options.partition_local_target_faces;
@@ -1370,7 +1370,7 @@ class QemDecimator::Impl {
             0;
     const std::vector<std::size_t> quotas =
         allocate_partition_removals(plan, total_removals);
-    stats_.partition_local_plan_seconds =
+    stats_.partition_local_plan_seconds +=
         std::chrono::duration<double>(
             std::chrono::steady_clock::now() - plan_start)
             .count();
@@ -1477,7 +1477,7 @@ class QemDecimator::Impl {
     for (std::thread &thread : threads) {
       thread.join();
     }
-    stats_.partition_local_parallel_seconds =
+    stats_.partition_local_parallel_seconds +=
         std::chrono::duration<double>(
             std::chrono::steady_clock::now() - parallel_start)
             .count();
@@ -1506,18 +1506,7 @@ class QemDecimator::Impl {
     active_faces_ -= total_removed_faces;
     stats_.partition_local_output_faces = active_faces_;
     stats_.partition_local_collapsed_edges = stats_.collapsed_edges;
-
-    std::fill(
-        topology_neighbor_stamps_.begin(), topology_neighbor_stamps_.end(), 0);
-    global_worker_.topology_stamp = 0;
-    const auto rebuild_start = std::chrono::steady_clock::now();
-    for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
-      update_edge_cost(edge_id, global_worker_);
-    }
-    stats_.global_heap_rebuild_seconds =
-        std::chrono::duration<double>(
-            std::chrono::steady_clock::now() - rebuild_start)
-            .count();
+    return total_removed_faces;
   }
 
   DecimatorStats decimate(const DecimatorOptions &options)
@@ -1537,7 +1526,28 @@ class QemDecimator::Impl {
     if (options.partition_local_count != 0 &&
         active_faces_ > options.partition_local_target_faces)
     {
-      run_partition_local_stage(options, &trace);
+      for (std::size_t epoch = 0;
+           epoch < options.partition_local_max_epochs &&
+           active_faces_ > options.partition_local_target_faces;
+           ++epoch)
+      {
+        const std::size_t removed = run_partition_local_stage(options, &trace);
+        ++stats_.partition_local_epoch_count;
+        if (removed == 0) {
+          break;
+        }
+      }
+      std::fill(
+          topology_neighbor_stamps_.begin(), topology_neighbor_stamps_.end(), 0);
+      global_worker_.topology_stamp = 0;
+      const auto rebuild_start = std::chrono::steady_clock::now();
+      for (EdgeId edge_id = 0; edge_id < edges_.size(); ++edge_id) {
+        update_edge_cost(edge_id, global_worker_);
+      }
+      stats_.global_heap_rebuild_seconds =
+          std::chrono::duration<double>(
+              std::chrono::steady_clock::now() - rebuild_start)
+              .count();
     }
     stats_.global_cleanup_input_faces = active_faces_;
     const std::size_t cleanup_start_collapses = global_worker_.collapsed_edges;

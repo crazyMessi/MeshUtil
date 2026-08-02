@@ -65,6 +65,20 @@ def main():
     assert partition_stats["target_reached"]
 
     try:
+        meshutil.simplify(
+            positions,
+            triangles,
+            6,
+            partition_local_count=16,
+            partition_local_target_faces=8,
+            partition_local_max_epochs=0,
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("zero partition_local_max_epochs should be rejected")
+
+    try:
         meshutil.simplify(positions.astype(np.float64), triangles, 6)
     except TypeError:
         pass

@@ -196,6 +196,20 @@ int main()
       parallel_partition_result.mesh.triangles == partition_result.mesh.triangles,
       "parallel partition-local triangles are not deterministic");
 
+  meshutil::SimplifyOptions repeated_partition_options = partition_options;
+  repeated_partition_options.threads = 4;
+  repeated_partition_options.partition_local_max_epochs = 2;
+  const meshutil::SimplifyResult repeated_partition_result =
+      meshutil::simplify(grid_input.view(), repeated_partition_options);
+  require(
+      repeated_partition_result.stats.partition_local_epoch_count >= 1 &&
+          repeated_partition_result.stats.partition_local_epoch_count <= 2,
+      "partition-local epoch count is out of range");
+  require(
+      repeated_partition_result.stats.target_reached,
+      "repeated partition-local path did not reach the target");
+  meshutil::validate_mesh(repeated_partition_result.mesh.view());
+
   meshutil::SimplifyOptions skipped_partition_options = options;
   skipped_partition_options.partition_local_count = 16;
   skipped_partition_options.partition_local_target_faces =

@@ -68,6 +68,17 @@ Validated performance presets for a 3,000,000-face target are:
 - about 31M input faces: `partition_local_count=32`,
   `partition_local_target_faces=3_050_000`, `threads=32`.
 
+For deeper reduction of the validated 18M-face case:
+
+- 1,000,000 faces: `partition_local_count=16`,
+  `partition_local_target_faces=1_000_000`, `threads=16`;
+- 300,000 faces: the same settings with
+  `partition_local_max_epochs=2`.
+
+`partition_local_max_epochs` defaults to `1`. Additional epochs rebuild the
+Morton ownership and local heaps on the current live topology before the final
+global cleanup.
+
 ## Implemented
 
 - strict `binary_little_endian 1.0` PLY input and output;

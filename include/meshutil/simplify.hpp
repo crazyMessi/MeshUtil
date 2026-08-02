@@ -18,6 +18,7 @@ struct SimplifyOptions {
   std::size_t partition_dry_run_count = 0;
   std::size_t partition_local_count = 0;
   std::size_t partition_local_target_faces = 0;
+  std::size_t partition_local_max_epochs = 1;
   MemoryMode memory_mode = MemoryMode::Balanced;
   std::string trace_path;
 };
@@ -54,6 +55,7 @@ struct SimplifyStats {
   std::size_t partition_transient_bytes = 0;
   std::size_t partition_local_count = 0;
   std::size_t partition_local_target_faces = 0;
+  std::size_t partition_local_epoch_count = 0;
   std::size_t partition_local_output_faces = 0;
   std::size_t partition_local_collapsed_edges = 0;
   std::size_t partition_local_stalled_count = 0;

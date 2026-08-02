@@ -271,3 +271,24 @@ Fixed partition output SHA remains unchanged. With the final schedules:
 
 - S P128, 32 workers, local target 3.0M: 19.18 -> 18.37 seconds.
 - M1 P32, 32 workers, local target 3.05M: 34.52 -> 32.94 seconds.
+
+## Deep-reduction epochs
+
+For reductions below one million faces, a single static partition epoch can
+exhaust its protected core before reaching the target. The optional
+`partition_local_max_epochs` parameter repeats ownership, halo, quota, and local
+heap construction on the current live topology. It defaults to one, preserving
+the existing API behavior. The global heap is rebuilt only once after the final
+local epoch.
+
+Validated S-case schedules:
+
+| Target | Partitions | Workers | Max epochs | Wall | General V1 | Speedup |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 3.0M | 128 | 32 | 1 | 18.37 s | 76.03 s | 4.14x |
+| 1.0M | 16 | 16 | 1 | 20.83 s | 88.24 s | 4.24x |
+| 0.3M | 16 | 16 | 2 | 22.80 s | 90.34 s | 3.96x |
+
+All three outputs have zero zero-area faces, zero nonmanifold edges, and zero
+isolated vertices. Repeated runs of each fixed schedule produced identical
+output SHA-256 values.

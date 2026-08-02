@@ -22,6 +22,7 @@ struct Arguments {
   std::size_t partition_dry_run_count = 0;
   std::size_t partition_local_count = 0;
   std::size_t partition_local_target_faces = 0;
+  std::size_t partition_local_max_epochs = 1;
 };
 
 [[noreturn]] void usage_error(const std::string &message)
@@ -32,6 +33,7 @@ struct Arguments {
       "--target-faces COUNT [--partition-dry-run-count 16|32|64|128] "
       "[--partition-local-count 16|32|64|128 "
       "--partition-local-target-faces COUNT] "
+      "[--partition-local-max-epochs COUNT] "
       "[--threads COUNT] "
       "[--memory-mode balanced|low] [--trace TRACE.jsonl]");
 }
@@ -66,6 +68,7 @@ Arguments parse_arguments(const int argc, char **argv)
              "--target-faces COUNT [--partition-dry-run-count 16|32|64|128] "
              "[--partition-local-count 16|32|64|128 "
              "--partition-local-target-faces COUNT] "
+             "[--partition-local-max-epochs COUNT] "
              "[--threads COUNT] "
              "[--memory-mode balanced|low] [--trace TRACE.jsonl]\n";
       std::exit(0);
@@ -91,6 +94,9 @@ Arguments parse_arguments(const int argc, char **argv)
     }
     else if (option == "--partition-local-target-faces") {
       arguments.partition_local_target_faces = parse_count(value);
+    }
+    else if (option == "--partition-local-max-epochs") {
+      arguments.partition_local_max_epochs = parse_count(value);
     }
     else if (option == "--threads") {
       const std::size_t threads = parse_count(value);
@@ -147,6 +153,7 @@ int main(const int argc, char **argv)
     options.partition_local_count = arguments.partition_local_count;
     options.partition_local_target_faces =
         arguments.partition_local_target_faces;
+    options.partition_local_max_epochs = arguments.partition_local_max_epochs;
     options.memory_mode = arguments.memory_mode;
     options.trace_path = arguments.trace;
     meshutil::SimplifyResult result = meshutil::simplify(std::move(input), options);
@@ -199,6 +206,8 @@ int main(const int argc, char **argv)
               << ",\"partition_local_count\":" << stats.partition_local_count
               << ",\"partition_local_target_faces\":"
               << stats.partition_local_target_faces
+              << ",\"partition_local_epoch_count\":"
+              << stats.partition_local_epoch_count
               << ",\"partition_local_output_faces\":"
               << stats.partition_local_output_faces
               << ",\"partition_local_collapsed_edges\":"
