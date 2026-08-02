@@ -223,3 +223,24 @@ wall saturates at 16 workers because initialization (about 12 seconds),
 partition planning (about 6.5 seconds), output I/O, and global cleanup are still
 serial. The next optimization target is therefore fixed serial work rather than
 more local-collapse workers.
+
+## Initial edge/loop construction cache
+
+Initial topology construction originally probed the Blender-style edge map once
+while discovering unique edges and again for every face corner while attaching
+radial loops. The optimized path assigns a stable temporary edge ID during the
+first probe, stores that ID in the loop, serializes edges in the unchanged
+map-major/slot-major order, then applies one linear temporary-to-final remap.
+Face/corner radial append order remains unchanged.
+
+Default formal outputs stayed 7/7 SHA-identical to Blender, and the fixed
+partition output also stayed byte-identical. Measured results:
+
+- S P128, 32 workers: 22.50 -> 20.25 seconds; initialization 12.36 -> 10.50
+  seconds; peak RSS 4.14 -> 4.24 GiB.
+- M1 P64, 16 workers: 39.89 -> 36.08 seconds; initialization 22.17 -> 18.53
+  seconds; peak RSS 6.10 -> 6.27 GiB.
+
+The temporary remap is released immediately after topology construction. This
+is an accepted speed/memory tradeoff; low-memory mode remains available when
+peak RSS is more important than throughput.

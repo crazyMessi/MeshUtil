@@ -355,6 +355,11 @@ std::size_t power_of_two_ceiling(std::size_t value)
 
 class BlenderEdgeMap {
  public:
+  struct LookupResult {
+    EdgeId edge_id = kInvalidEdgeId;
+    bool inserted = false;
+  };
+
   explicit BlenderEdgeMap(const std::size_t minimum_usable_slots)
   {
     if (minimum_usable_slots > std::numeric_limits<std::size_t>::max() / 2) {
@@ -369,20 +374,25 @@ class BlenderEdgeMap {
     usable_slots_ = total_slots / 2;
   }
 
-  void lookup_or_add(VertexId first, VertexId second)
+  LookupResult lookup_or_add(VertexId first,
+                             VertexId second,
+                             const EdgeId new_edge_id)
   {
     OrderedEdge key;
     key.low = std::min(first, second);
     key.high = std::max(first, second);
     if (occupied_slots_ >= usable_slots_) {
-      if (lookup_ordered(key.low, key.high) != kInvalidEdgeId) {
-        return;
+      const EdgeId existing = lookup_ordered(key.low, key.high);
+      if (existing != kInvalidEdgeId) {
+        return {existing, false};
       }
       ensure_can_add();
     }
-    if (lookup_or_add_without_grow(key)) {
+    const LookupResult result = lookup_or_add_without_grow(key, new_edge_id);
+    if (result.inserted) {
       ++occupied_slots_;
     }
+    return result;
   }
 
   std::size_t size() const noexcept
@@ -390,11 +400,11 @@ class BlenderEdgeMap {
     return occupied_slots_;
   }
 
-  template<typename AppendEdge> void serialize_edges(AppendEdge append_edge)
+  template<typename AppendEdge> void serialize_edges(AppendEdge append_edge) const
   {
-    for (Slot &slot : slots_) {
+    for (const Slot &slot : slots_) {
       if (slot.edge_id != kInvalidEdgeId) {
-        slot.edge_id = append_edge(slot.key);
+        append_edge(slot.key, slot.edge_id);
       }
     }
   }
@@ -426,7 +436,8 @@ class BlenderEdgeMap {
     EdgeId edge_id = kInvalidEdgeId;
   };
 
-  bool lookup_or_add_without_grow(const OrderedEdge &key)
+  LookupResult lookup_or_add_without_grow(const OrderedEdge &key,
+                                          const EdgeId new_edge_id)
   {
     const std::uint64_t initial_hash = blender_ordered_edge_hash(key);
     std::uint64_t hash = initial_hash;
@@ -435,11 +446,11 @@ class BlenderEdgeMap {
       Slot &slot = slots_[static_cast<std::size_t>(hash & mask_)];
       if (slot.edge_id == kInvalidEdgeId) {
         slot.key = key;
-        slot.edge_id = 0;
-        return true;
+        slot.edge_id = new_edge_id;
+        return {new_edge_id, true};
       }
       if (slot.key.low == key.low && slot.key.high == key.high) {
-        return false;
+        return {slot.edge_id, false};
       }
       perturb >>= 5;
       hash = 5 * hash + 1 + perturb;
@@ -463,8 +474,9 @@ class BlenderEdgeMap {
     occupied_slots_ = 0;
     for (const Slot &slot : old_slots) {
       if (slot.edge_id != kInvalidEdgeId) {
-        const bool inserted = lookup_or_add_without_grow(slot.key);
-        if (!inserted) {
+        const LookupResult result =
+            lookup_or_add_without_grow(slot.key, slot.edge_id);
+        if (!result.inserted) {
           throw std::runtime_error("internal error: duplicate edge while growing initial edge map");
         }
         ++occupied_slots_;
@@ -697,10 +709,10 @@ class QemDecimator::Impl {
     std::vector<std::array<VertexId, 3>>().swap(mesh.faces);
 
     {
-      std::vector<BlenderEdgeMap> initial_edge_maps = build_initial_edges_like_blender();
       loops_.resize(faces_.size() * kLoopsPerFace);
+      build_initial_edges_like_blender();
       for (FaceId face_id = 0; face_id < faces_.size(); ++face_id) {
-        attach_face_to_initial_edges(face_id, initial_edge_maps);
+        attach_face_to_initial_edges(face_id);
       }
     }
     build_vertex_normals();
@@ -2070,7 +2082,7 @@ class QemDecimator::Impl {
     }
   }
 
-  std::vector<BlenderEdgeMap> build_initial_edges_like_blender()
+  void build_initial_edges_like_blender()
   {
     constexpr std::size_t kParallelMapThreshold = 1000;
     constexpr std::size_t kParallelMapCount = 8;
@@ -2100,15 +2112,34 @@ class QemDecimator::Impl {
       edge_maps.emplace_back(unique_edge_guess);
     }
 
-    for (const Face &face : faces_) {
+    EdgeId temporary_edge_count = 0;
+    for (FaceId face_id = 0; face_id < faces_.size(); ++face_id) {
+      const Face &face = faces_[face_id];
       VertexId previous = face.vertices.back();
-      for (const VertexId current : face.vertices) {
+      std::size_t previous_corner = face.vertices.size() - 1;
+      for (std::size_t current_corner = 0;
+           current_corner < face.vertices.size();
+           ++current_corner)
+      {
+        const VertexId current = face.vertices[current_corner];
         if (previous != current) {
           const VertexId low = std::min(previous, current);
           const std::size_t map_index = static_cast<std::size_t>(low) & map_mask;
-          edge_maps[map_index].lookup_or_add(previous, current);
+          const BlenderEdgeMap::LookupResult result =
+              edge_maps[map_index].lookup_or_add(
+                  previous, current, temporary_edge_count);
+          loops_[face_first_loop(face_id) +
+                 static_cast<LoopId>(previous_corner)]
+              .edge = result.edge_id;
+          if (result.inserted) {
+            if (temporary_edge_count == kInvalidEdgeId - 1) {
+              throw std::runtime_error("mesh exceeds stable 32-bit edge ID capacity");
+            }
+            ++temporary_edge_count;
+          }
         }
         previous = current;
+        previous_corner = current_corner;
       }
     }
 
@@ -2122,43 +2153,41 @@ class QemDecimator::Impl {
     if (edge_count > std::numeric_limits<EdgeId>::max()) {
       throw std::runtime_error("mesh exceeds stable 32-bit edge ID capacity");
     }
+    if (edge_count != temporary_edge_count) {
+      throw std::runtime_error("internal error: temporary edge count is inconsistent");
+    }
+    std::vector<EdgeId> temporary_to_final(edge_count, kInvalidEdgeId);
     edges_.reserve(edge_count);
-    for (BlenderEdgeMap &edge_map : edge_maps) {
-      edge_map.serialize_edges([&](const OrderedEdge &ordered_edge) {
+    for (const BlenderEdgeMap &edge_map : edge_maps) {
+      edge_map.serialize_edges([&](const OrderedEdge &ordered_edge,
+                                   const EdgeId temporary_edge_id) {
         const EdgeId edge_id = static_cast<EdgeId>(edges_.size());
+        temporary_to_final[temporary_edge_id] = edge_id;
         Edge edge;
         edge.first = ordered_edge.low;
         edge.second = ordered_edge.high;
         edges_.push_back(std::move(edge));
         disk_edge_append(edge_id, ordered_edge.low);
         disk_edge_append(edge_id, ordered_edge.high);
-        return edge_id;
       });
     }
-    return edge_maps;
-  }
-
-  void attach_face_to_initial_edges(
-      const FaceId face_id,
-      const std::vector<BlenderEdgeMap> &initial_edge_maps)
-  {
-    Face &face = faces_[face_id];
-    const LoopId first_loop = face_first_loop(face_id);
-    const std::size_t map_mask = initial_edge_maps.size() - 1;
-    for (std::size_t corner = 0; corner < face.vertices.size(); ++corner) {
-      const VertexId current = face.vertices[corner];
-      const VertexId next = face.vertices[(corner + 1) % face.vertices.size()];
-      const VertexId low = std::min(current, next);
-      const VertexId high = std::max(current, next);
-      const std::size_t map_index = static_cast<std::size_t>(low) & map_mask;
-      const EdgeId edge_id = initial_edge_maps[map_index].lookup_ordered(low, high);
-      if (edge_id == kInvalidEdgeId) {
+    for (Loop &loop : loops_) {
+      if (loop.edge == kInvalidEdgeId ||
+          loop.edge >= temporary_to_final.size() ||
+          temporary_to_final[loop.edge] == kInvalidEdgeId)
+      {
         throw std::runtime_error("internal error: initial Blender edge map lost a face edge");
       }
+      loop.edge = temporary_to_final[loop.edge];
+    }
+  }
+
+  void attach_face_to_initial_edges(const FaceId face_id)
+  {
+    const LoopId first_loop = face_first_loop(face_id);
+    for (std::size_t corner = 0; corner < faces_[face_id].vertices.size(); ++corner) {
       const LoopId loop_id = first_loop + static_cast<LoopId>(corner);
-      Loop &loop = loops_[loop_id];
-      loop.edge = edge_id;
-      radial_loop_append(edge_id, loop_id);
+      radial_loop_append(loops_[loop_id].edge, loop_id);
     }
   }
 
