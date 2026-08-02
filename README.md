@@ -38,17 +38,16 @@ The Python API accepts C-contiguous NumPy arrays with shapes `[N, 3]` and
 `[M, 3]`, dtypes `float32` and `uint32`. It releases the GIL during
 simplification.
 
-The experimental General V2 single-worker behavior baseline can run one
-partition-local epoch before global cleanup:
+General V2 can run one partition-local epoch before global cleanup:
 
 ```python
 out_vertices, out_faces, stats = meshutil.simplify(
     vertices,
     faces,
     target_faces=3_000_000,
-    threads=16,
+    threads=32,
     partition_local_count=128,
-    partition_local_target_faces=3_200_000,
+    partition_local_target_faces=3_000_000,
 )
 ```
 
@@ -56,12 +55,18 @@ out_vertices, out_faces, stats = meshutil.simplify(
 `partition_local_target_faces` must be between the final target and the input
 face count. The local epoch keeps the existing QEM collapse implementation,
 protects partition halos, then rebuilds one global heap for exact-target
-cleanup. This interface is currently single-worker; it is the behavior baseline
-cleanup. `threads` controls only how fixed
-partitions are scheduled; partition count, quotas, local heap order, and output
-remain fixed. The implementation uses private heap entries and scratch per
-worker while sharing one `EdgeId -> heap position` array, so RSS does not grow
-with the worker count.
+cleanup. `threads` controls only how fixed partitions are scheduled; partition
+count, quotas, local heap order, and output remain fixed. The implementation
+uses private heap entries and scratch per worker while sharing one
+`EdgeId -> heap position` array, so RSS does not grow with the worker count.
+Initial edge maps use at most the same requested thread count.
+
+Validated performance presets for a 3,000,000-face target are:
+
+- about 18M input faces: `partition_local_count=128`,
+  `partition_local_target_faces=3_000_000`, `threads=32`;
+- about 31M input faces: `partition_local_count=32`,
+  `partition_local_target_faces=3_050_000`, `threads=32`.
 
 ## Implemented
 

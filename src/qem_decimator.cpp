@@ -2241,12 +2241,12 @@ class QemDecimator::Impl {
       edge_maps.emplace_back(unique_edge_guess);
     }
     std::array<EdgeId, kMapCount> temporary_edge_counts{};
+    const std::size_t worker_count = std::min<std::size_t>(
+        kMapCount, std::max<unsigned>(1, initialization_threads_));
     std::mutex failure_mutex;
     std::exception_ptr failure;
-    const auto build_map = [&](const std::size_t map_index) {
+    const auto run_worker = [&](const std::size_t worker_index) {
       try {
-        EdgeId &temporary_edge_count = temporary_edge_counts[map_index];
-        BlenderEdgeMap &edge_map = edge_maps[map_index];
         for (FaceId face_id = 0; face_id < faces_.size(); ++face_id) {
           const Face &face = faces_[face_id];
           VertexId previous = face.vertices.back();
@@ -2258,9 +2258,14 @@ class QemDecimator::Impl {
             const VertexId current = face.vertices[current_corner];
             if (previous != current) {
               const VertexId low = std::min(previous, current);
-              if ((static_cast<std::size_t>(low) & kMapMask) == map_index) {
+              const std::size_t map_index =
+                  static_cast<std::size_t>(low) & kMapMask;
+              if (map_index % worker_count == worker_index) {
+                EdgeId &temporary_edge_count =
+                    temporary_edge_counts[map_index];
                 const BlenderEdgeMap::LookupResult result =
-                    edge_map.lookup_or_add(previous, current, temporary_edge_count);
+                    edge_maps[map_index].lookup_or_add(
+                        previous, current, temporary_edge_count);
                 loops_[face_first_loop(face_id) +
                        static_cast<LoopId>(previous_corner)]
                     .edge = result.edge_id;
@@ -2287,10 +2292,10 @@ class QemDecimator::Impl {
     };
 
     std::vector<std::thread> threads;
-    threads.reserve(kMapCount - 1);
+    threads.reserve(worker_count - 1);
     try {
-      for (std::size_t map_index = 1; map_index < kMapCount; ++map_index) {
-        threads.emplace_back(build_map, map_index);
+      for (std::size_t worker_index = 1; worker_index < worker_count; ++worker_index) {
+        threads.emplace_back(run_worker, worker_index);
       }
     }
     catch (...) {
@@ -2299,7 +2304,7 @@ class QemDecimator::Impl {
       }
       throw;
     }
-    build_map(0);
+    run_worker(0);
     for (std::thread &thread : threads) {
       thread.join();
     }
