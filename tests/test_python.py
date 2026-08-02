@@ -57,7 +57,6 @@ def main():
         triangles,
         6,
         partition_local_count=16,
-        partition_local_target_faces=8,
     )
     assert partition_faces.shape[0] <= 6
     assert partition_stats["partition_local_count"] == 16
@@ -70,13 +69,25 @@ def main():
             triangles,
             6,
             partition_local_count=16,
-            partition_local_target_faces=8,
             partition_local_max_epochs=0,
         )
     except ValueError:
         pass
     else:
         raise AssertionError("zero partition_local_max_epochs should be rejected")
+
+    try:
+        meshutil.simplify(
+            positions,
+            triangles,
+            6,
+            partition_local_count=16,
+            partition_local_max_normalized_cost=-1.0,
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("invalid partition quality guard should be rejected")
 
     try:
         meshutil.simplify(positions.astype(np.float64), triangles, 6)

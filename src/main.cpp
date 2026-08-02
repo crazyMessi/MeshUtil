@@ -2,6 +2,7 @@
 #include "meshutil/simplify.hpp"
 
 #include <cstddef>
+#include <cmath>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
@@ -23,6 +24,7 @@ struct Arguments {
   std::size_t partition_local_count = 0;
   std::size_t partition_local_target_faces = 0;
   std::size_t partition_local_max_epochs = 1;
+  double partition_local_max_normalized_cost = 1.5e-13;
 };
 
 [[noreturn]] void usage_error(const std::string &message)
@@ -34,6 +36,7 @@ struct Arguments {
       "[--partition-local-count 16|32|64|128 "
       "--partition-local-target-faces COUNT] "
       "[--partition-local-max-epochs COUNT] "
+      "[--partition-local-max-normalized-cost COST] "
       "[--threads COUNT] "
       "[--memory-mode balanced|low] [--trace TRACE.jsonl]");
 }
@@ -69,6 +72,7 @@ Arguments parse_arguments(const int argc, char **argv)
              "[--partition-local-count 16|32|64|128 "
              "--partition-local-target-faces COUNT] "
              "[--partition-local-max-epochs COUNT] "
+             "[--partition-local-max-normalized-cost COST] "
              "[--threads COUNT] "
              "[--memory-mode balanced|low] [--trace TRACE.jsonl]\n";
       std::exit(0);
@@ -97,6 +101,21 @@ Arguments parse_arguments(const int argc, char **argv)
     }
     else if (option == "--partition-local-max-epochs") {
       arguments.partition_local_max_epochs = parse_count(value);
+    }
+    else if (option == "--partition-local-max-normalized-cost") {
+      std::size_t parsed = 0;
+      try {
+        arguments.partition_local_max_normalized_cost =
+            std::stod(value, &parsed);
+      }
+      catch (const std::exception &) {
+        usage_error("invalid --partition-local-max-normalized-cost value");
+      }
+      if (parsed != value.size() ||
+          !std::isfinite(arguments.partition_local_max_normalized_cost))
+      {
+        usage_error("invalid --partition-local-max-normalized-cost value");
+      }
     }
     else if (option == "--threads") {
       const std::size_t threads = parse_count(value);
@@ -154,6 +173,8 @@ int main(const int argc, char **argv)
     options.partition_local_target_faces =
         arguments.partition_local_target_faces;
     options.partition_local_max_epochs = arguments.partition_local_max_epochs;
+    options.partition_local_max_normalized_cost =
+        arguments.partition_local_max_normalized_cost;
     options.memory_mode = arguments.memory_mode;
     options.trace_path = arguments.trace;
     meshutil::SimplifyResult result = meshutil::simplify(std::move(input), options);
@@ -208,6 +229,10 @@ int main(const int argc, char **argv)
               << stats.partition_local_target_faces
               << ",\"partition_local_epoch_count\":"
               << stats.partition_local_epoch_count
+              << ",\"partition_local_max_normalized_cost\":"
+              << stats.partition_local_max_normalized_cost
+              << ",\"partition_local_effective_max_cost\":"
+              << stats.partition_local_effective_max_cost
               << ",\"partition_local_output_faces\":"
               << stats.partition_local_output_faces
               << ",\"partition_local_collapsed_edges\":"

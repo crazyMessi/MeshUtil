@@ -722,6 +722,26 @@ class QemDecimator::Impl {
       vertex.position = position;
       vertices_.push_back(std::move(vertex));
     }
+    if (!vertices_.empty()) {
+      Float3 minimum = vertices_.front().position;
+      Float3 maximum = minimum;
+      for (const Vertex &vertex : vertices_) {
+        minimum.x = std::min(minimum.x, vertex.position.x);
+        minimum.y = std::min(minimum.y, vertex.position.y);
+        minimum.z = std::min(minimum.z, vertex.position.z);
+        maximum.x = std::max(maximum.x, vertex.position.x);
+        maximum.y = std::max(maximum.y, vertex.position.y);
+        maximum.z = std::max(maximum.z, vertex.position.z);
+      }
+      const double delta_x =
+          static_cast<double>(maximum.x) - static_cast<double>(minimum.x);
+      const double delta_y =
+          static_cast<double>(maximum.y) - static_cast<double>(minimum.y);
+      const double delta_z =
+          static_cast<double>(maximum.z) - static_cast<double>(minimum.z);
+      input_bbox_diagonal_squared_ =
+          delta_x * delta_x + delta_y * delta_y + delta_z * delta_z;
+    }
     topology_neighbor_stamps_.resize(vertices_.size());
 
     for (const std::array<VertexId, 3> &face_vertices : mesh.faces) {
@@ -1289,6 +1309,12 @@ class QemDecimator::Impl {
       if (candidate.value >= edges_.size() || !edges_[candidate.value].alive()) {
         continue;
       }
+      if (local && partition_local_effective_max_cost_ > 0.0 &&
+          static_cast<double>(candidate.key) >
+              partition_local_effective_max_cost_)
+      {
+        break;
+      }
 
       Edge &edge = edges_[candidate.value];
       const std::size_t faces_removed = edge_face_count(candidate.value);
@@ -1515,6 +1541,13 @@ class QemDecimator::Impl {
       throw std::runtime_error("--target-faces cannot exceed the input face count");
     }
     TraceWriter trace(options.trace_path);
+    stats_.partition_local_max_normalized_cost =
+        options.partition_local_max_normalized_cost;
+    partition_local_effective_max_cost_ =
+        options.partition_local_max_normalized_cost *
+        input_bbox_diagonal_squared_;
+    stats_.partition_local_effective_max_cost =
+        partition_local_effective_max_cost_;
     trace.event("header", [&](std::ostream &stream) {
       stream << ",\"input_vertices\":" << input_vertices_ << ",\"input_faces\":" << input_faces_
              << ",\"target_faces\":" << options.target_faces
@@ -2716,6 +2749,8 @@ class QemDecimator::Impl {
   std::size_t input_faces_ = 0;
   MemoryMode memory_mode_ = MemoryMode::Balanced;
   unsigned initialization_threads_ = 1;
+  double input_bbox_diagonal_squared_ = 0.0;
+  double partition_local_effective_max_cost_ = 0.0;
   DecimatorStats stats_;
 };
 

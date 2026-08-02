@@ -163,13 +163,18 @@ int main()
   meshutil::SimplifyOptions partition_options;
   partition_options.target_faces = 2000;
   partition_options.partition_local_count = 16;
-  partition_options.partition_local_target_faces = 2400;
   const meshutil::SimplifyResult partition_result =
       meshutil::simplify(grid_input.view(), partition_options);
   require(partition_result.stats.target_reached, "partition target was not reached");
   require(
       partition_result.stats.partition_local_count == 16,
       "partition count was not reported");
+  require(
+      partition_result.stats.partition_local_max_normalized_cost > 0.0,
+      "partition quality guard was not reported");
+  require(
+      partition_result.stats.partition_local_effective_max_cost > 0.0,
+      "effective partition quality guard was not reported");
   require(
       partition_result.stats.partition_local_collapsed_edges > 0,
       "partition-local stage did not collapse any edge");
@@ -225,5 +230,16 @@ int main()
   require(
       skipped_partition_result.mesh.triangles == result.mesh.triangles,
       "skipped partition-local triangles changed the default result");
+
+  meshutil::SimplifyOptions invalid_guard_options = partition_options;
+  invalid_guard_options.partition_local_max_normalized_cost = -1.0;
+  bool invalid_guard_rejected = false;
+  try {
+    meshutil::simplify(grid_input.view(), invalid_guard_options);
+  }
+  catch (const std::invalid_argument &) {
+    invalid_guard_rejected = true;
+  }
+  require(invalid_guard_rejected, "invalid partition quality guard was accepted");
   return 0;
 }

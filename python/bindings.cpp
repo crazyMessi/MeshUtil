@@ -65,6 +65,10 @@ py::dict stats_dict(const meshutil::SimplifyStats &stats)
   result["partition_local_count"] = stats.partition_local_count;
   result["partition_local_target_faces"] = stats.partition_local_target_faces;
   result["partition_local_epoch_count"] = stats.partition_local_epoch_count;
+  result["partition_local_max_normalized_cost"] =
+      stats.partition_local_max_normalized_cost;
+  result["partition_local_effective_max_cost"] =
+      stats.partition_local_effective_max_cost;
   result["partition_local_output_faces"] = stats.partition_local_output_faces;
   result["partition_local_collapsed_edges"] =
       stats.partition_local_collapsed_edges;
@@ -105,7 +109,8 @@ py::tuple simplify_arrays(const py::array &positions,
                           const std::size_t partition_dry_run_count,
                           const std::size_t partition_local_count,
                           const std::size_t partition_local_target_faces,
-                          const std::size_t partition_local_max_epochs)
+                          const std::size_t partition_local_max_epochs,
+                          const double partition_local_max_normalized_cost)
 {
   require_matrix(positions, py::dtype::of<float>(), "positions");
   require_matrix(triangles, py::dtype::of<meshutil::Index>(), "triangles");
@@ -125,6 +130,8 @@ py::tuple simplify_arrays(const py::array &positions,
   options.partition_local_count = partition_local_count;
   options.partition_local_target_faces = partition_local_target_faces;
   options.partition_local_max_epochs = partition_local_max_epochs;
+  options.partition_local_max_normalized_cost =
+      partition_local_max_normalized_cost;
   if (memory_mode == "balanced") {
     options.memory_mode = meshutil::MemoryMode::Balanced;
   }
@@ -172,5 +179,6 @@ PYBIND11_MODULE(meshutil, module)
       py::arg("partition_local_count") = 0,
       py::arg("partition_local_target_faces") = 0,
       py::arg("partition_local_max_epochs") = 1,
+      py::arg("partition_local_max_normalized_cost") = 1.5e-13,
       "Simplify float32 positions and uint32 triangle indices.");
 }

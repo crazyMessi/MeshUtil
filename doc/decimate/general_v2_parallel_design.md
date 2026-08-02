@@ -292,3 +292,41 @@ Validated S-case schedules:
 All three outputs have zero zero-area faces, zero nonmanifold edges, and zero
 isolated vertices. Repeated runs of each fixed schedule produced identical
 output SHA-256 values.
+
+## Surface-quality guard
+
+Topology validity alone was not sufficient. Allowing each partition to consume
+its full face-removal quota changed the global collapse order enough to increase
+sampled point-to-triangle CD, especially for the 1.0M and 0.3M targets.
+
+The quality-safe implementation now stops a local heap when its minimum
+candidate exceeds:
+
+`partition_local_max_normalized_cost * input_bbox_diagonal^2`.
+
+The default normalized threshold is `1.5e-13`. Higher-cost collapses are
+deferred to the global heap, restoring global QEM priority. The threshold must
+remain positive because CD is a hard acceptance gate.
+
+Three-seed validation uses 1,000,000 area-weighted surface samples per direction
+and complete-mesh cuBVH point-to-triangle queries. Relative to General V1 mean
+CD:
+
+| Scene | V2 / V1 mean CD | Result |
+| --- | ---: | --- |
+| S -> 3.0M | 1.052x | pass |
+| S -> 1.0M | 1.000x | pass |
+| S -> 0.3M | 1.011x | pass |
+| M1 -> 3.0M | 1.017x | pass |
+
+All are below the 1.25x quality gate. Setting the normalized cost threshold to
+zero is rejected.
+
+Final guarded performance:
+
+| Scene | Wall | General V1 | Speedup | Actual local stop |
+| --- | ---: | ---: | ---: | ---: |
+| S -> 3.0M | 23.63 s | 76.03 s | 3.22x | 4.394M |
+| S -> 1.0M | 34.02 s | 88.24 s | 2.59x | 4.394M |
+| S -> 0.3M | 37.14 s | 90.34 s | 2.43x | 4.394M |
+| M1 -> 3.0M | 36.86 s | 149.76 s | 4.06x | 3.882M |

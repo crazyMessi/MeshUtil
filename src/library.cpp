@@ -140,6 +140,10 @@ SimplifyStats copy_stats(const standalone_decimator::DecimatorStats &stats)
   result.partition_local_count = stats.partition_local_count;
   result.partition_local_target_faces = stats.partition_local_target_faces;
   result.partition_local_epoch_count = stats.partition_local_epoch_count;
+  result.partition_local_max_normalized_cost =
+      stats.partition_local_max_normalized_cost;
+  result.partition_local_effective_max_cost =
+      stats.partition_local_effective_max_cost;
   result.partition_local_output_faces = stats.partition_local_output_faces;
   result.partition_local_collapsed_edges = stats.partition_local_collapsed_edges;
   result.partition_local_stalled_count = stats.partition_local_stalled_count;
@@ -267,7 +271,14 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   if (options.partition_local_max_epochs == 0) {
     throw std::invalid_argument("partition_local_max_epochs must be positive");
   }
+  if (!(options.partition_local_max_normalized_cost > 0.0 &&
+        std::isfinite(options.partition_local_max_normalized_cost)))
+  {
+    throw std::invalid_argument(
+        "partition_local_max_normalized_cost must be finite and positive");
+  }
   if (options.partition_local_count != 0 &&
+      options.partition_local_target_faces != 0 &&
       (options.partition_local_target_faces < options.target_faces ||
        options.partition_local_target_faces > mesh.triangle_count))
   {
@@ -279,11 +290,14 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
   standalone_decimator::InputMesh input = copy_input(mesh);
   const auto input_end = std::chrono::steady_clock::now();
   const auto initialization_start = input_end;
+  const std::size_t requested_local_target =
+      options.partition_local_target_faces == 0 ?
+          options.target_faces :
+          options.partition_local_target_faces;
   const std::size_t internal_partition_local_target =
       options.partition_local_count == 0 ?
           0 :
-          effective_target(
-              mesh.triangle_count, options.partition_local_target_faces);
+          effective_target(mesh.triangle_count, requested_local_target);
   const bool run_partition_local =
       options.partition_local_count != 0 &&
       internal_partition_local_target < mesh.triangle_count;
@@ -305,6 +319,8 @@ SimplifyResult Simplifier::simplify(const MeshView mesh,
       run_partition_local ? internal_partition_local_target : 0;
   internal_options.partition_local_max_epochs =
       run_partition_local ? options.partition_local_max_epochs : 1;
+  internal_options.partition_local_max_normalized_cost =
+      run_partition_local ? options.partition_local_max_normalized_cost : 0.0;
   internal_options.memory_mode = internal_memory_mode(options.memory_mode);
   internal_options.trace_path = options.trace_path;
   const standalone_decimator::DecimatorStats internal_stats =
@@ -361,7 +377,14 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
   if (options.partition_local_max_epochs == 0) {
     throw std::invalid_argument("partition_local_max_epochs must be positive");
   }
+  if (!(options.partition_local_max_normalized_cost > 0.0 &&
+        std::isfinite(options.partition_local_max_normalized_cost)))
+  {
+    throw std::invalid_argument(
+        "partition_local_max_normalized_cost must be finite and positive");
+  }
   if (options.partition_local_count != 0 &&
+      options.partition_local_target_faces != 0 &&
       (options.partition_local_target_faces < options.target_faces ||
        options.partition_local_target_faces > input_faces))
   {
@@ -373,10 +396,14 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
   standalone_decimator::InputMesh input = consume_input(std::move(mesh));
   const auto input_end = std::chrono::steady_clock::now();
   const auto initialization_start = input_end;
+  const std::size_t requested_local_target =
+      options.partition_local_target_faces == 0 ?
+          options.target_faces :
+          options.partition_local_target_faces;
   const std::size_t internal_partition_local_target =
       options.partition_local_count == 0 ?
           0 :
-          effective_target(input_faces, options.partition_local_target_faces);
+          effective_target(input_faces, requested_local_target);
   const bool run_partition_local =
       options.partition_local_count != 0 &&
       internal_partition_local_target < input_faces;
@@ -398,6 +425,8 @@ SimplifyResult Simplifier::simplify(Mesh mesh, const SimplifyOptions &options)
       run_partition_local ? internal_partition_local_target : 0;
   internal_options.partition_local_max_epochs =
       run_partition_local ? options.partition_local_max_epochs : 1;
+  internal_options.partition_local_max_normalized_cost =
+      run_partition_local ? options.partition_local_max_normalized_cost : 0.0;
   internal_options.memory_mode = internal_memory_mode(options.memory_mode);
   internal_options.trace_path = options.trace_path;
   const standalone_decimator::DecimatorStats internal_stats =

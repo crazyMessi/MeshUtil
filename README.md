@@ -47,37 +47,37 @@ out_vertices, out_faces, stats = meshutil.simplify(
     target_faces=3_000_000,
     threads=32,
     partition_local_count=128,
-    partition_local_target_faces=3_000_000,
 )
 ```
 
 `partition_local_count` accepts `16`, `32`, `64`, or `128`.
-`partition_local_target_faces` must be between the final target and the input
-face count. The local epoch keeps the existing QEM collapse implementation,
-protects partition halos, then rebuilds one global heap for exact-target
-cleanup. `threads` controls only how fixed partitions are scheduled; partition
-count, quotas, local heap order, and output remain fixed. The implementation
+By default, the partition-local stage stops when its minimum candidate exceeds
+the normalized QEM cost guard:
+
+`partition_local_max_normalized_cost * input_bbox_diagonal^2`.
+
+The default normalized guard is `1.5e-13`. Remaining collapses use the global
+heap, restoring global QEM priority before geometric error grows. The guard must
+remain positive because CD is a hard acceptance gate.
+
+`partition_local_target_faces=0` lets the guard choose the stopping point.
+An explicit, larger local target remains available as a more conservative cap.
+
+The local epoch keeps the existing QEM collapse implementation, protects
+partition halos, then rebuilds one global heap for exact-target cleanup.
+`threads` controls only how fixed partitions are scheduled. The implementation
 uses private heap entries and scratch per worker while sharing one
 `EdgeId -> heap position` array, so RSS does not grow with the worker count.
-Initial edge maps use at most the same requested thread count.
 
-Validated performance presets for a 3,000,000-face target are:
+Validated CD-safe presets are:
 
-- about 18M input faces: `partition_local_count=128`,
-  `partition_local_target_faces=3_000_000`, `threads=32`;
-- about 31M input faces: `partition_local_count=32`,
-  `partition_local_target_faces=3_050_000`, `threads=32`.
-
-For deeper reduction of the validated 18M-face case:
-
-- 1,000,000 faces: `partition_local_count=16`,
-  `partition_local_target_faces=1_000_000`, `threads=16`;
-- 300,000 faces: the same settings with
-  `partition_local_max_epochs=2`.
+- about 18M to 3M faces: `partition_local_count=128`, `threads=32`;
+- about 18M to 1M or 0.3M faces: `partition_local_count=128`, `threads=32`;
+- about 31M to 3M faces: `partition_local_count=32`, `threads=32`.
 
 `partition_local_max_epochs` defaults to `1`. Additional epochs rebuild the
 Morton ownership and local heaps on the current live topology before the final
-global cleanup.
+global cleanup, but the normalized cost guard still applies in every epoch.
 
 ## Implemented
 
