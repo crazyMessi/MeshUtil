@@ -1,9 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
-project(standalone_decimator LANGUAGES CXX)
+project(MeshUtil LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
-include(CTest)
+
+set(meshutil_is_top_level OFF)
+set(meshutil_default_tests OFF)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(meshutil_is_top_level ON)
+  include(CTest)
+  set(meshutil_default_tests "${BUILD_TESTING}")
+endif()
+
+option(MESHUTIL_BUILD_TOOLS "Build standalone mesh command-line tools" ${meshutil_is_top_level})
+option(MESHUTIL_BUILD_TESTS "Build and register MeshUtil tests" ${meshutil_default_tests})
 
 add_library(meshutil_double_crossing INTERFACE)
 add_library(MeshUtil::double_crossing ALIAS meshutil_double_crossing)
@@ -22,7 +32,10 @@ if(MESHUTIL_BUILD_EXAMPLES)
   target_link_libraries(double_crossing_example PRIVATE MeshUtil::double_crossing)
 endif()
 
-if(BUILD_TESTING)
+# Respect the conventional top-level switch, including when our own option was
+# cached ON. Embedded builds opt in explicitly, independently of parent tests.
+if(MESHUTIL_BUILD_TESTS AND (NOT meshutil_is_top_level OR BUILD_TESTING))
+  enable_testing()
   add_executable(double_crossing_test tests/double_crossing_test.cpp)
   target_link_libraries(double_crossing_test PRIVATE MeshUtil::double_crossing)
   target_compile_options(double_crossing_test PRIVATE -Wall -Wextra -Wpedantic)
@@ -40,40 +53,45 @@ if(BUILD_TESTING)
   endif()
 endif()
 
-add_executable(
-  standalone_decimator
-  src/main.cpp
-  src/ply_io.cpp
-  src/qem_decimator.cpp
-)
-
-set(meshutil_executable_targets standalone_decimator)
-# The batch runner uses Linux CPU-affinity APIs (sched_getaffinity/cpu_set_t).
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(MESHUTIL_BUILD_TOOLS)
   add_executable(
-    standalone_batch_runner
-    tools/standalone_batch_runner.cpp
+    standalone_decimator
+    apps/standalone_decimator.cpp
+    src/decimate/ply_io.cpp
+    src/decimate/qem_decimator.cpp
   )
-  list(APPEND meshutil_executable_targets standalone_batch_runner)
+  target_include_directories(
+    standalone_decimator PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/decimate"
+  )
+
+  set(meshutil_executable_targets standalone_decimator)
+  # The batch runner uses Linux CPU-affinity APIs (sched_getaffinity/cpu_set_t).
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_executable(
+      standalone_batch_runner
+      apps/standalone_batch_runner.cpp
+    )
+    list(APPEND meshutil_executable_targets standalone_batch_runner)
+  endif()
+
+  foreach(target IN LISTS meshutil_executable_targets)
+    target_compile_features(${target} PRIVATE cxx_std_17)
+    target_compile_options(
+      ${target}
+      PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -ffp-contract=off
+        -fno-strict-aliasing
+    )
+  endforeach()
+
+  install(
+    TARGETS ${meshutil_executable_targets}
+    RUNTIME DESTINATION bin
+  )
 endif()
-
-foreach(target IN LISTS meshutil_executable_targets)
-  target_compile_features(${target} PRIVATE cxx_std_17)
-  target_compile_options(
-    ${target}
-    PRIVATE
-      -Wall
-      -Wextra
-      -Wpedantic
-      -ffp-contract=off
-      -fno-strict-aliasing
-  )
-endforeach()
-
-install(
-  TARGETS ${meshutil_executable_targets}
-  RUNTIME DESTINATION bin
-)
 
 install(TARGETS meshutil_double_crossing EXPORT MeshUtilTargets)
 install(DIRECTORY include/meshutil DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
