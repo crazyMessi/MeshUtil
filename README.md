@@ -1,4 +1,34 @@
-# Standalone Triangle QEM Decimator
+# MeshUtil
+
+Self-contained C++17 utilities for triangle meshes and grid-based surface
+reconstruction. The modules have different responsibilities:
+
+| Module | Problem addressed | Interface |
+| --- | --- | --- |
+| Triangle QEM decimator | Reduce triangle count with the validated Blender 4.0.2 collapse behavior | `standalone_decimator`, `standalone_batch_runner`; details below |
+| Double-crossing connectivity | Retain two distinct surface crossings on one grid edge when corner signs alone would miss a thin feature | Header-only `MeshUtil::double_crossing`; [guide](doc/double_crossing/README.md), [中文说明](doc/double_crossing/README.zh-CN.md) |
+
+The connectivity module accepts corner signs and **0, 1, or 2 distinct crossings
+per grid edge**, and returns face paths or cube boundary loops. It supplies the
+topological connection step; callers provide mesh/grid intersections, yellow
+turn-point positions, and geometry-aware triangulation. It does not reconstruct
+a mesh from an SDF alone. More than two crossings are explicitly rejected.
+
+To build its example and run the exhaustive connectivity checks:
+
+```bash
+cmake -S . -B temp_output/build -DCMAKE_BUILD_TYPE=Release -DMESHUTIL_BUILD_EXAMPLES=ON
+cmake --build temp_output/build --parallel
+ctest --test-dir temp_output/build --output-on-failure -j 1
+./temp_output/build/double_crossing_example
+```
+
+Include `<meshutil/double_crossing.hpp>` and link the CMake interface target
+`MeshUtil::double_crossing`. The committed tables need no Python at runtime.
+The [module guide](doc/double_crossing/README.md) covers installation, encoding,
+the 1 KiB / 348 B table choices, provenance, and the remaining geometry work.
+
+## Standalone Triangle QEM Decimator
 
 This directory contains a self-contained C++17 decimator. It does not link to
 Blender and does not require Blender, `bpy`, or Blender Python at runtime. The
@@ -50,15 +80,16 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel
 ```
 
-To install both executables under a chosen prefix:
+To install the available executables under a chosen prefix:
 
 ```bash
 cmake --install build --prefix "$HOME/.local"
 ```
 
-This installs `standalone_decimator` and `standalone_batch_runner` in
-`$HOME/.local/bin`. CMake 3.16 or newer and a C++17 compiler are required to
-build the project. The only runtime dependency is the standard C++ library.
+This installs `standalone_decimator` in `$HOME/.local/bin`. On Linux it also
+builds and installs `standalone_batch_runner`, whose CPU-affinity support uses
+Linux APIs. CMake 3.16 or newer and a C++17 compiler are required to build the
+project. The only runtime dependency is the standard C++ library.
 
 ## Run
 
