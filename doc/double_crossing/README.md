@@ -142,7 +142,22 @@ indicates a pair of crossings on edge `i`:
 - Equal endpoint signs allow zero crossings (pair bit 0) or two (pair bit 1).
 
 The face key is `corner_mask | (pair_mask << 4)`. Of the 256 bit patterns,
-82 satisfy these constraints. Face endpoint IDs are `2*edge+slot`;
+82 satisfy these constraints. The other **174 encodings are contradictory
+inputs**: at least one edge has opposite endpoint signs and its pair bit set.
+Each genuine crossing flips inside/outside, so two crossings require matching
+endpoint signs. Such inputs raise `std::invalid_argument`.
+
+![Two cube cells containing the same thin slab: valid outside corner labels on the left, and an incorrect inside label at B on the right. The highlighted grid edge crosses the slab twice.](assets/crossing-parity.svg)
+
+Each wireframe is one cube cell. The translucent slab is the inside region;
+its two boundary surfaces intersect the highlighted grid edge at `p0` and `p1`.
+The left cube has consistent outside corner labels. The right cube shows the
+same geometry but incorrectly labels B as inside, even though crossing twice
+from outside requires outside. A face code with any such edge is rejected;
+these are not additional valid geometric cases missing from the table. The
+count of 174 refers to the **face encoding**, not to the number of cube cases.
+
+Face endpoint IDs are `2*edge+slot`;
 `slot` is ordered by increasing parameter along the directed edge. A single
 crossing uses slot 0. The second crossing uses slot 1.
 
