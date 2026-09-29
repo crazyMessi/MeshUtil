@@ -1,5 +1,5 @@
 {
-  "definition": "Unoriented face pairing differs between key and key XOR 0x0F, at fixed edge/slot labels.",
+  "definition": "Both inputs are valid. Unoriented face pairing differs between key and key XOR 0x0F, at fixed edge/slot labels.",
   "face_state_count": 82,
   "changed_state_count": 14,
   "pair_count": 7,

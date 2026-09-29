@@ -75,7 +75,7 @@ def build_conflicts():
         paths_a, paths_b = endpoint_pairs(case_a["seed_paths"]), endpoint_pairs(case_b["seed_paths"])
         require(paths_a != paths_b, "Selected pair differs only in direction or turn naming")
         canonical = orbit_pair_key(key_a)
-        require(canonical in FAMILIES, "Unexpected D4 conflict family")
+        require(canonical in FAMILIES, "Unexpected D4 complement-pairing family")
         family, description = FAMILIES[canonical]
         pairs.append({
             "name": f"conflict-{index:02d}",
@@ -95,7 +95,7 @@ def build_conflicts():
     family_counts = Counter(pair["family"] for pair in pairs)
     require(sorted(family_counts.values()) == [1, 2, 4], "Unexpected D4 family sizes")
     return {
-        "definition": "Unoriented face pairing differs between key and key XOR 0x0F, at fixed edge/slot labels.",
+        "definition": "Both inputs are valid. Unoriented face pairing differs between key and key XOR 0x0F, at fixed edge/slot labels.",
         "face_state_count": len(cases),
         "changed_state_count": len(changed),
         "pair_count": len(pairs),
@@ -175,7 +175,7 @@ def diagram(pair):
     body = text(24, 31, f'COMPLEMENT PAIR {index:02d} / 07', 23, "#1c344d", 'font-weight="700"')
     body += text(976, 29, f'{pair["family"]} / 3 D4 families', 12,
                  extra='text-anchor="end"')
-    body += text(24, 54, "Identical edge hits; opposite corner labels; different endpoint pairing.", 14)
+    body += text(24, 54, "Both inputs are valid: identical edge hits; opposite corner labels; different pairing.", 14)
     for side, color, offset in (("a", A_COLOR, 0), ("b", B_COLOR, 500)):
         case = pair[f"case_{side}"]
         body += f'<rect x="{offset + 16}" y="70" width="468" height="497" rx="13" fill="white" stroke="#dae4ed"/>'
@@ -204,12 +204,12 @@ def diagram(pair):
         body += text(offset + 276, 555, 'hollow corner = outside', 10)
     body += text(24, 588, f'{pair["family_description"]}. Counts: {pair["case_a"]["face_counts"]}.', 12)
     body += text(24, 609, 'Separate complemented inputs; illustrative coordinates and turns. Boundary connectivity only, no GT or triangle reconstruction.', 11)
-    return svg_document(1000, 620, body, f'Complement conflict {index}: 0x{pair["key_a"]:02X} versus 0x{pair["key_b"]:02X}')
+    return svg_document(1000, 620, body, f'Valid complement-pairing comparison {index}: 0x{pair["key_a"]:02X} versus 0x{pair["key_b"]:02X}')
 
 
 def overview(data):
     width, height = 1200, 810
-    body = text(28, 38, '7 COMPLEMENT PAIRS / 14 FACE STATES / 3 D4 FAMILIES', 24, "#1c344d", 'font-weight="700"')
+    body = text(28, 38, '7 COMPLEMENT PAIRS / 14 VALID STATES / 3 D4 FAMILIES', 24, "#1c344d", 'font-weight="700"')
     body += text(28, 65, 'At fixed edge slots, swapping all inside/outside labels changes the lookup pairing in these cases.', 14)
     body += text(28, 88, 'Orange = input A. Blue = complemented input B. Filled corner = inside; hollow = outside; yellow = face turn.', 13)
     for index, pair in enumerate(data["pairs"]):
@@ -226,25 +226,27 @@ def overview(data):
     body += text(625, 693, 'Why this matters', 17, "#1c344d", 'font-weight="700"')
     body += text(625, 720, 'Complement is not a valid compression symmetry', 14)
     body += text(625, 743, 'for this selected face-pairing policy.', 14)
-    body += text(625, 770, 'These are different inputs, not inconsistent table entries.', 12)
+    body += text(625, 770, 'Both sides are valid inputs, separate from the 174 invalid keys.', 12)
     return svg_document(width, height, body, 'All seven complement-sensitive pairs')
 
 
 def readme(data):
     rows = []
     for pair in data["pairs"]:
-        rows.append(f'| [{pair["name"]}]({pair["name"]}.svg) | `0x{pair["key_a"]:02X}` / `0x{pair["key_b"]:02X}` '
+        rows.append(f'| [对照 {pair["name"].split("-")[1]}]({pair["name"]}.svg) | `0x{pair["key_a"]:02X}` / `0x{pair["key_b"]:02X}` '
                     f'| {pair["template_a"]} / {pair["template_b"]} | {pair["family"]} '
                     f'| {pair["case_a"]["face_counts"]} |')
-    return '''# 内外翻转后的配对冲突示例
+    return '''# 内外翻转后的连接差异（合法输入）
 
-[冲突总览](overview.svg) · [23 个代表 case](../cases/README.md) · [机器可读完整数据](conflicts.json)
+[连接差异总览](overview.svg) · [23 个代表 case](../cases/README.md) · [174 个非法输入](../invalid/README.md) · [机器可读完整数据](conflicts.json)
 
-[下载包含全部示例和冲突图的 PDF](../../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+[下载分类 PDF 图册（本组内容位于附录）](../../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
 
-这里的“冲突”是指：**固定面坐标、边编号和交点槽编号，把四个角点的内外状态全部翻转后，查表给出的无向端点配对改变**。它说明本表不能把内外翻转当成压缩对称；并不表示同一个输入在表中有两种自相矛盾的结果，也不声称两幅图来自同一个 GT 网格。
+**每组两侧都是合法输入。** 固定面坐标、边编号和交点槽编号，把四个角点的内外状态全部翻转后，查表给出的无向端点配对改变。这说明本表不能把内外翻转当成压缩对称。
 
-枚举全部 82 个合法面状态，比较 `key` 和 `key ^ 0x0F`，得到 14 个状态、7 对互补输入。再按同时旋转/镜像、允许 A/B 两侧交换归并，可得 **3 类**：对角角点四条单交边（1 对）；相邻角点一条双交边（4 对）；相邻角点两条双交边（2 对）。原始 23 个模板中涉及 `3b`、`3c`、`3d`、`4a`。
+输入矛盾是“端点异号却要求两个交点”，共 174 个非法编码，另见[非法输入图集](../invalid/README.md)。本组不属于它们，也不表示同一输入在表中有两种结果，或两图来自同一个 GT 网格。目录名与 `conflict-XX.svg` 文件名保留，仅为兼容已有链接。
+
+枚举全部 82 个合法面状态，比较 `key` 和 `key ^ 0x0F`，得到 14 个合法状态、7 对互补输入。再按同时旋转/镜像、允许 A/B 两侧交换归并，可得 **3 类**：对角角点四条单交边（1 对）；相邻角点一条双交边（4 对）；相邻角点两条双交边（2 对）。原始 23 个模板中涉及 `3b`、`3c`、`3d`、`4a`。
 
 | 对照图 | 面编码 A / B | 代表模板 A / B | 旋转镜像类 | 边交点数 e0…e3 |
 | --- | --- | --- | --- | --- |
@@ -294,7 +296,7 @@ def main():
                  (args.output / name).read_bytes() != content.encode("utf-8")]
         if stale:
             parser.exit(1, "Missing or stale output: " + ", ".join(stale) + "\n")
-        print(f"Verified {len(files)} artifacts: 14 states, 7 pairs, 3 D4 families.")
+        print(f"Verified {len(files)} artifacts: 14 valid states, 7 pairs, 3 D4 families.")
     else:
         args.output.mkdir(parents=True, exist_ok=True)
         for name, content in files.items():

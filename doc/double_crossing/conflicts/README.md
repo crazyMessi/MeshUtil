@@ -1,22 +1,24 @@
-# 内外翻转后的配对冲突示例
+# 内外翻转后的连接差异（合法输入）
 
-[冲突总览](overview.svg) · [23 个代表 case](../cases/README.md) · [机器可读完整数据](conflicts.json)
+[连接差异总览](overview.svg) · [23 个代表 case](../cases/README.md) · [174 个非法输入](../invalid/README.md) · [机器可读完整数据](conflicts.json)
 
-[下载包含全部示例和冲突图的 PDF](../../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+[下载分类 PDF 图册（本组内容位于附录）](../../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
 
-这里的“冲突”是指：**固定面坐标、边编号和交点槽编号，把四个角点的内外状态全部翻转后，查表给出的无向端点配对改变**。它说明本表不能把内外翻转当成压缩对称；并不表示同一个输入在表中有两种自相矛盾的结果，也不声称两幅图来自同一个 GT 网格。
+**每组两侧都是合法输入。** 固定面坐标、边编号和交点槽编号，把四个角点的内外状态全部翻转后，查表给出的无向端点配对改变。这说明本表不能把内外翻转当成压缩对称。
 
-枚举全部 82 个合法面状态，比较 `key` 和 `key ^ 0x0F`，得到 14 个状态、7 对互补输入。再按同时旋转/镜像、允许 A/B 两侧交换归并，可得 **3 类**：对角角点四条单交边（1 对）；相邻角点一条双交边（4 对）；相邻角点两条双交边（2 对）。原始 23 个模板中涉及 `3b`、`3c`、`3d`、`4a`。
+输入矛盾是“端点异号却要求两个交点”，共 174 个非法编码，另见[非法输入图集](../invalid/README.md)。本组不属于它们，也不表示同一输入在表中有两种结果，或两图来自同一个 GT 网格。目录名与 `conflict-XX.svg` 文件名保留，仅为兼容已有链接。
+
+枚举全部 82 个合法面状态，比较 `key` 和 `key ^ 0x0F`，得到 14 个合法状态、7 对互补输入。再按同时旋转/镜像、允许 A/B 两侧交换归并，可得 **3 类**：对角角点四条单交边（1 对）；相邻角点一条双交边（4 对）；相邻角点两条双交边（2 对）。原始 23 个模板中涉及 `3b`、`3c`、`3d`、`4a`。
 
 | 对照图 | 面编码 A / B | 代表模板 A / B | 旋转镜像类 | 边交点数 e0…e3 |
 | --- | --- | --- | --- | --- |
-| [conflict-01](conflict-01.svg) | `0x05` / `0x0A` | 4a / 4a | family-01 | [1, 1, 1, 1] |
-| [conflict-02](conflict-02.svg) | `0x13` / `0x1C` | 3b / 3c | family-02 | [2, 1, 0, 1] |
-| [conflict-03](conflict-03.svg) | `0x26` / `0x29` | 3b / 3c | family-02 | [1, 2, 1, 0] |
-| [conflict-04](conflict-04.svg) | `0x43` / `0x4C` | 3c / 3b | family-02 | [0, 1, 2, 1] |
-| [conflict-05](conflict-05.svg) | `0x53` / `0x5C` | 3d / 3d | family-03 | [2, 1, 2, 1] |
-| [conflict-06](conflict-06.svg) | `0x86` / `0x89` | 3c / 3b | family-02 | [1, 0, 1, 2] |
-| [conflict-07](conflict-07.svg) | `0xA6` / `0xA9` | 3d / 3d | family-03 | [1, 2, 1, 2] |
+| [对照 01](conflict-01.svg) | `0x05` / `0x0A` | 4a / 4a | family-01 | [1, 1, 1, 1] |
+| [对照 02](conflict-02.svg) | `0x13` / `0x1C` | 3b / 3c | family-02 | [2, 1, 0, 1] |
+| [对照 03](conflict-03.svg) | `0x26` / `0x29` | 3b / 3c | family-02 | [1, 2, 1, 0] |
+| [对照 04](conflict-04.svg) | `0x43` / `0x4C` | 3c / 3b | family-02 | [0, 1, 2, 1] |
+| [对照 05](conflict-05.svg) | `0x53` / `0x5C` | 3d / 3d | family-03 | [2, 1, 2, 1] |
+| [对照 06](conflict-06.svg) | `0x86` / `0x89` | 3c / 3b | family-02 | [1, 0, 1, 2] |
+| [对照 07](conflict-07.svg) | `0xA6` / `0xA9` | 3d / 3d | family-03 | [1, 2, 1, 2] |
 
 ## 图怎么读
 

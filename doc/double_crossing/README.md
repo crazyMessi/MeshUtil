@@ -4,7 +4,13 @@
 
 [23 illustrated cube examples](cases/README.md) · [Interactive gallery](cases/index.html) · [Overview](cases/overview.svg)
 
-[7 complement-pairing comparisons](conflicts/README.md) · [Complete PDF atlas (21 pages)](../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+[174 invalid face encodings](invalid/README.md) · [7 valid complement-pairing comparisons](conflicts/README.md) · [Complete PDF atlas](../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+
+The atlas groups valid cases and invalid inputs in two chapters, followed by
+an appendix on changed pairings after inside/outside complementation. The 174
+invalid encodings contain 1, 2, 3, or 4 contradictory edges, respectively:
+104, 60, 8, and 2 encodings. The 7 complement comparisons use valid inputs on
+both sides; they are separate from input contradictions.
 
 ## Purpose and place in a pipeline
 
@@ -146,7 +152,13 @@ indicates a pair of crossings on edge `i`:
 - Equal endpoint signs allow zero crossings (pair bit 0) or two (pair bit 1).
 
 The face key is `corner_mask | (pair_mask << 4)`. Of the 256 bit patterns,
-82 satisfy these constraints. Face endpoint IDs are `2*edge+slot`;
+82 satisfy these constraints. The remaining 174 encode at least one edge with
+opposite endpoint signs and a pair bit of 1. Two crossings flip the sign twice,
+so the endpoints must have equal signs; `lookup_face` rejects these contradictory
+inputs with `std::invalid_argument`. They are not unimplemented valid cases.
+See the [invalid-input diagrams](invalid/README.md) for all 174 encodings.
+
+Face endpoint IDs are `2*edge+slot`;
 `slot` is ordered by increasing parameter along the directed edge. A single
 crossing uses slot 0. The second crossing uses slot 1.
 

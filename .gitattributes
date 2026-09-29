@@ -6,4 +6,7 @@ doc/double_crossing/cases/*.json text eol=lf
 doc/double_crossing/conflicts/*.svg text eol=lf
 doc/double_crossing/conflicts/*.json text eol=lf
 doc/double_crossing/conflicts/README.md text eol=lf
+doc/double_crossing/invalid/*.svg text eol=lf
+doc/double_crossing/invalid/*.json text eol=lf
+doc/double_crossing/invalid/README.md text eol=lf
 output/pdf/*.pdf binary

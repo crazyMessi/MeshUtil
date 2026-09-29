@@ -1,0 +1,5168 @@
+{
+  "definition": "A bad edge has opposite endpoint signs and its two-crossing pair bit set.",
+  "encoding": "key = corners | (pairs << 4); bit i of corners is c_i; bit i of pairs is e_i.",
+  "corner_order": "c0=(0,0), c1=(1,0), c2=(1,1), c3=(0,1)",
+  "edge_directions": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      3,
+      0
+    ]
+  ],
+  "geometry_note": "Only requested corner labels and edge hits are drawn. No valid cube, face connectivity, loop, or surface is asserted.",
+  "valid_count": 82,
+  "invalid_count": 174,
+  "counts_by_bad_edges": {
+    "1": 104,
+    "2": 60,
+    "3": 8,
+    "4": 2
+  },
+  "representatives": [
+    17,
+    145,
+    117,
+    245
+  ],
+  "states": [
+    {
+      "key": 17,
+      "hex": "0x11",
+      "corners": 1,
+      "pairs": 1,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        0,
+        0,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 18,
+      "hex": "0x12",
+      "corners": 2,
+      "pairs": 1,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        0,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 21,
+      "hex": "0x15",
+      "corners": 5,
+      "pairs": 1,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        1,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 22,
+      "hex": "0x16",
+      "corners": 6,
+      "pairs": 1,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        0,
+        1,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 25,
+      "hex": "0x19",
+      "corners": 9,
+      "pairs": 1,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        0,
+        1,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 26,
+      "hex": "0x1A",
+      "corners": 10,
+      "pairs": 1,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        1,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 29,
+      "hex": "0x1D",
+      "corners": 13,
+      "pairs": 1,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        0,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 30,
+      "hex": "0x1E",
+      "corners": 14,
+      "pairs": 1,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        0,
+        0,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 34,
+      "hex": "0x22",
+      "corners": 2,
+      "pairs": 2,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        0,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 35,
+      "hex": "0x23",
+      "corners": 3,
+      "pairs": 2,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        0,
+        2,
+        0,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 36,
+      "hex": "0x24",
+      "corners": 4,
+      "pairs": 2,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        0,
+        2,
+        1,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 37,
+      "hex": "0x25",
+      "corners": 5,
+      "pairs": 2,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        1,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 42,
+      "hex": "0x2A",
+      "corners": 10,
+      "pairs": 2,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        1,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 43,
+      "hex": "0x2B",
+      "corners": 11,
+      "pairs": 2,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        0,
+        2,
+        1,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 44,
+      "hex": "0x2C",
+      "corners": 12,
+      "pairs": 2,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        0,
+        2,
+        0,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 45,
+      "hex": "0x2D",
+      "corners": 13,
+      "pairs": 2,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        0,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 49,
+      "hex": "0x31",
+      "corners": 1,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 50,
+      "hex": "0x32",
+      "corners": 2,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 51,
+      "hex": "0x33",
+      "corners": 3,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 52,
+      "hex": "0x34",
+      "corners": 4,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 53,
+      "hex": "0x35",
+      "corners": 5,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        1
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 54,
+      "hex": "0x36",
+      "corners": 6,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 57,
+      "hex": "0x39",
+      "corners": 9,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 58,
+      "hex": "0x3A",
+      "corners": 10,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        1
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 59,
+      "hex": "0x3B",
+      "corners": 11,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 60,
+      "hex": "0x3C",
+      "corners": 12,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 61,
+      "hex": "0x3D",
+      "corners": 13,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 62,
+      "hex": "0x3E",
+      "corners": 14,
+      "pairs": 3,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 68,
+      "hex": "0x44",
+      "corners": 4,
+      "pairs": 4,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        0,
+        1,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 69,
+      "hex": "0x45",
+      "corners": 5,
+      "pairs": 4,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        1,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 70,
+      "hex": "0x46",
+      "corners": 6,
+      "pairs": 4,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        0,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 71,
+      "hex": "0x47",
+      "corners": 7,
+      "pairs": 4,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        0,
+        0,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 72,
+      "hex": "0x48",
+      "corners": 8,
+      "pairs": 4,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        0,
+        0,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 73,
+      "hex": "0x49",
+      "corners": 9,
+      "pairs": 4,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        0,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 74,
+      "hex": "0x4A",
+      "corners": 10,
+      "pairs": 4,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        1,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 75,
+      "hex": "0x4B",
+      "corners": 11,
+      "pairs": 4,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        0,
+        1,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 81,
+      "hex": "0x51",
+      "corners": 1,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 82,
+      "hex": "0x52",
+      "corners": 2,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 84,
+      "hex": "0x54",
+      "corners": 4,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 85,
+      "hex": "0x55",
+      "corners": 5,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        1
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 86,
+      "hex": "0x56",
+      "corners": 6,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 87,
+      "hex": "0x57",
+      "corners": 7,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 88,
+      "hex": "0x58",
+      "corners": 8,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 89,
+      "hex": "0x59",
+      "corners": 9,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 90,
+      "hex": "0x5A",
+      "corners": 10,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        1
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 91,
+      "hex": "0x5B",
+      "corners": 11,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 93,
+      "hex": "0x5D",
+      "corners": 13,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 94,
+      "hex": "0x5E",
+      "corners": 14,
+      "pairs": 5,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 98,
+      "hex": "0x62",
+      "corners": 2,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 99,
+      "hex": "0x63",
+      "corners": 3,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 100,
+      "hex": "0x64",
+      "corners": 4,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 101,
+      "hex": "0x65",
+      "corners": 5,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        1
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 102,
+      "hex": "0x66",
+      "corners": 6,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 103,
+      "hex": "0x67",
+      "corners": 7,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 104,
+      "hex": "0x68",
+      "corners": 8,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 105,
+      "hex": "0x69",
+      "corners": 9,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 106,
+      "hex": "0x6A",
+      "corners": 10,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        1
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 107,
+      "hex": "0x6B",
+      "corners": 11,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 108,
+      "hex": "0x6C",
+      "corners": 12,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 109,
+      "hex": "0x6D",
+      "corners": 13,
+      "pairs": 6,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        0
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 113,
+      "hex": "0x71",
+      "corners": 1,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 114,
+      "hex": "0x72",
+      "corners": 2,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 115,
+      "hex": "0x73",
+      "corners": 3,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 116,
+      "hex": "0x74",
+      "corners": 4,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 117,
+      "hex": "0x75",
+      "corners": 5,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        1,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "group": 3,
+      "bad_edge_count": 3
+    },
+    {
+      "key": 118,
+      "hex": "0x76",
+      "corners": 6,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 119,
+      "hex": "0x77",
+      "corners": 7,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 120,
+      "hex": "0x78",
+      "corners": 8,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 121,
+      "hex": "0x79",
+      "corners": 9,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 122,
+      "hex": "0x7A",
+      "corners": 10,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        1,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "group": 3,
+      "bad_edge_count": 3
+    },
+    {
+      "key": 123,
+      "hex": "0x7B",
+      "corners": 11,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 124,
+      "hex": "0x7C",
+      "corners": 12,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 125,
+      "hex": "0x7D",
+      "corners": 13,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 126,
+      "hex": "0x7E",
+      "corners": 14,
+      "pairs": 7,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 129,
+      "hex": "0x81",
+      "corners": 1,
+      "pairs": 8,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        0,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 131,
+      "hex": "0x83",
+      "corners": 3,
+      "pairs": 8,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        0,
+        1,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 133,
+      "hex": "0x85",
+      "corners": 5,
+      "pairs": 8,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        1,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 135,
+      "hex": "0x87",
+      "corners": 7,
+      "pairs": 8,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        0,
+        0,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 136,
+      "hex": "0x88",
+      "corners": 8,
+      "pairs": 8,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        0,
+        0,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 138,
+      "hex": "0x8A",
+      "corners": 10,
+      "pairs": 8,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        1,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 140,
+      "hex": "0x8C",
+      "corners": 12,
+      "pairs": 8,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        0,
+        1,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 142,
+      "hex": "0x8E",
+      "corners": 14,
+      "pairs": 8,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        0,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 145,
+      "hex": "0x91",
+      "corners": 1,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        0,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 146,
+      "hex": "0x92",
+      "corners": 2,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 147,
+      "hex": "0x93",
+      "corners": 3,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        2,
+        1,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 149,
+      "hex": "0x95",
+      "corners": 5,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        1,
+        1,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 150,
+      "hex": "0x96",
+      "corners": 6,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        0,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 151,
+      "hex": "0x97",
+      "corners": 7,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        2,
+        0,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 152,
+      "hex": "0x98",
+      "corners": 8,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        2,
+        0,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 153,
+      "hex": "0x99",
+      "corners": 9,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        0,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 154,
+      "hex": "0x9A",
+      "corners": 10,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        1,
+        1,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 156,
+      "hex": "0x9C",
+      "corners": 12,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        2,
+        1,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 157,
+      "hex": "0x9D",
+      "corners": 13,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 158,
+      "hex": "0x9E",
+      "corners": 14,
+      "pairs": 9,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        0,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 161,
+      "hex": "0xA1",
+      "corners": 1,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        2,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 162,
+      "hex": "0xA2",
+      "corners": 2,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 163,
+      "hex": "0xA3",
+      "corners": 3,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        0,
+        2,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 164,
+      "hex": "0xA4",
+      "corners": 4,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        0,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 165,
+      "hex": "0xA5",
+      "corners": 5,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        1,
+        2,
+        1,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 167,
+      "hex": "0xA7",
+      "corners": 7,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        0,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 168,
+      "hex": "0xA8",
+      "corners": 8,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        0,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 170,
+      "hex": "0xAA",
+      "corners": 10,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        1,
+        2,
+        1,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 171,
+      "hex": "0xAB",
+      "corners": 11,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        0,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 172,
+      "hex": "0xAC",
+      "corners": 12,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        0,
+        2,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 173,
+      "hex": "0xAD",
+      "corners": 13,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 174,
+      "hex": "0xAE",
+      "corners": 14,
+      "pairs": 10,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        2,
+        0,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 177,
+      "hex": "0xB1",
+      "corners": 1,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 178,
+      "hex": "0xB2",
+      "corners": 2,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 179,
+      "hex": "0xB3",
+      "corners": 3,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 180,
+      "hex": "0xB4",
+      "corners": 4,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 181,
+      "hex": "0xB5",
+      "corners": 5,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        1,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        2
+      ],
+      "group": 3,
+      "bad_edge_count": 3
+    },
+    {
+      "key": 182,
+      "hex": "0xB6",
+      "corners": 6,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 183,
+      "hex": "0xB7",
+      "corners": 7,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 184,
+      "hex": "0xB8",
+      "corners": 8,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 185,
+      "hex": "0xB9",
+      "corners": 9,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 186,
+      "hex": "0xBA",
+      "corners": 10,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        1,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        2
+      ],
+      "group": 3,
+      "bad_edge_count": 3
+    },
+    {
+      "key": 187,
+      "hex": "0xBB",
+      "corners": 11,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        1,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 188,
+      "hex": "0xBC",
+      "corners": 12,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 189,
+      "hex": "0xBD",
+      "corners": 13,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 190,
+      "hex": "0xBE",
+      "corners": 14,
+      "pairs": 11,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        0,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 193,
+      "hex": "0xC1",
+      "corners": 1,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        0,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 195,
+      "hex": "0xC3",
+      "corners": 3,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        0,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 196,
+      "hex": "0xC4",
+      "corners": 4,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        0,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 197,
+      "hex": "0xC5",
+      "corners": 5,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        1,
+        1,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 198,
+      "hex": "0xC6",
+      "corners": 6,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        0,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 199,
+      "hex": "0xC7",
+      "corners": 7,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        0,
+        0,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 200,
+      "hex": "0xC8",
+      "corners": 8,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        0,
+        0,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 201,
+      "hex": "0xC9",
+      "corners": 9,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        0,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 202,
+      "hex": "0xCA",
+      "corners": 10,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        1,
+        1,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 203,
+      "hex": "0xCB",
+      "corners": 11,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        0,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 204,
+      "hex": "0xCC",
+      "corners": 12,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        0,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 206,
+      "hex": "0xCE",
+      "corners": 14,
+      "pairs": 12,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        0,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 209,
+      "hex": "0xD1",
+      "corners": 1,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 210,
+      "hex": "0xD2",
+      "corners": 2,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 211,
+      "hex": "0xD3",
+      "corners": 3,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 212,
+      "hex": "0xD4",
+      "corners": 4,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 213,
+      "hex": "0xD5",
+      "corners": 5,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        2,
+        3
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        2
+      ],
+      "group": 3,
+      "bad_edge_count": 3
+    },
+    {
+      "key": 214,
+      "hex": "0xD6",
+      "corners": 6,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 215,
+      "hex": "0xD7",
+      "corners": 7,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 216,
+      "hex": "0xD8",
+      "corners": 8,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 217,
+      "hex": "0xD9",
+      "corners": 9,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 218,
+      "hex": "0xDA",
+      "corners": 10,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        2,
+        3
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        2
+      ],
+      "group": 3,
+      "bad_edge_count": 3
+    },
+    {
+      "key": 219,
+      "hex": "0xDB",
+      "corners": 11,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 220,
+      "hex": "0xDC",
+      "corners": 12,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 221,
+      "hex": "0xDD",
+      "corners": 13,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0
+      ],
+      "counts": [
+        2,
+        1,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 222,
+      "hex": "0xDE",
+      "corners": 14,
+      "pairs": 13,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 225,
+      "hex": "0xE1",
+      "corners": 1,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 226,
+      "hex": "0xE2",
+      "corners": 2,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 227,
+      "hex": "0xE3",
+      "corners": 3,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 228,
+      "hex": "0xE4",
+      "corners": 4,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 229,
+      "hex": "0xE5",
+      "corners": 5,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        2,
+        3
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "group": 3,
+      "bad_edge_count": 3
+    },
+    {
+      "key": 230,
+      "hex": "0xE6",
+      "corners": 6,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 231,
+      "hex": "0xE7",
+      "corners": 7,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 232,
+      "hex": "0xE8",
+      "corners": 8,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 233,
+      "hex": "0xE9",
+      "corners": 9,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 234,
+      "hex": "0xEA",
+      "corners": 10,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        2,
+        3
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "group": 3,
+      "bad_edge_count": 3
+    },
+    {
+      "key": 235,
+      "hex": "0xEB",
+      "corners": 11,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 236,
+      "hex": "0xEC",
+      "corners": 12,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        0,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 237,
+      "hex": "0xED",
+      "corners": 13,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 238,
+      "hex": "0xEE",
+      "corners": 14,
+      "pairs": 14,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        3
+      ],
+      "counts": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "group": 1,
+      "bad_edge_count": 1
+    },
+    {
+      "key": 241,
+      "hex": "0xF1",
+      "corners": 1,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 242,
+      "hex": "0xF2",
+      "corners": 2,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 243,
+      "hex": "0xF3",
+      "corners": 3,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 244,
+      "hex": "0xF4",
+      "corners": 4,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 245,
+      "hex": "0xF5",
+      "corners": 5,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 4,
+      "bad_edge_count": 4
+    },
+    {
+      "key": 246,
+      "hex": "0xF6",
+      "corners": 6,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 247,
+      "hex": "0xF7",
+      "corners": 7,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 248,
+      "hex": "0xF8",
+      "corners": 8,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        2,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 249,
+      "hex": "0xF9",
+      "corners": 9,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 250,
+      "hex": "0xFA",
+      "corners": 10,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 4,
+      "bad_edge_count": 4
+    },
+    {
+      "key": 251,
+      "hex": "0xFB",
+      "corners": 11,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        1,
+        1,
+        0,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        2
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 252,
+      "hex": "0xFC",
+      "corners": 12,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        1,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 253,
+      "hex": "0xFD",
+      "corners": 13,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        1
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    },
+    {
+      "key": 254,
+      "hex": "0xFE",
+      "corners": 14,
+      "pairs": 15,
+      "corner_bits_c0_to_c3": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "pair_bits_e0_to_e3": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "bad_edges": [
+        0,
+        3
+      ],
+      "counts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "group": 2,
+      "bad_edge_count": 2
+    }
+  ]
+}

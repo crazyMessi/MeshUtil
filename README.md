@@ -16,10 +16,13 @@ and 0–2 distinct crossings per edge and returns face paths or cube boundary
 loops. Callers supply intersection positions, yellow-turn geometry, and
 triangulation. More than two crossings are rejected.
 
-The double-crossing module includes [23 illustrated cube examples](doc/double_crossing/cases/README.md),
-[7 complement-pairing comparisons](doc/double_crossing/conflicts/README.md),
-and a [21-page vector PDF atlas](output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf).
-The examples also have individual SVG diagrams, overviews, and an offline interactive gallery.
+The double-crossing module includes a [vector PDF atlas](output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+organized into valid inputs, invalid inputs, and a complement-pairing appendix:
+[23 representative cube examples](doc/double_crossing/cases/README.md),
+[all 174 invalid face encodings](doc/double_crossing/invalid/README.md), and
+[7 pairing comparisons between valid complemented inputs](doc/double_crossing/conflicts/README.md).
+The invalid inputs have 1, 2, 3, or 4 contradictory edges (104, 60, 8, and 2 encodings).
+Individual SVG diagrams, grouped overviews, and an offline case gallery are also included.
 
 ## Build
 

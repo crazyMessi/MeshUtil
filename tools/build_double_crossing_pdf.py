@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the vector PDF atlas from the committed case and conflict diagrams.
+"""Build the classified vector atlas: valid cases, invalid inputs, appendix.
 
 Requires ReportLab (pip install reportlab). Pass --cjk-font if an embedded
 Chinese TrueType font cannot be located automatically. All illustrations
@@ -19,6 +19,10 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
+
+from render_double_crossing_cases import cube, svg_document, text
+from render_double_crossing_conflicts import face as connected_face, A_COLOR, B_COLOR
+from render_double_crossing_invalid import build_invalid, thumbnail
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf"
@@ -83,13 +87,13 @@ def paragraph(pdf, value, x, y, width, size=11, leading=18, fill=MUTED):
     return y
 
 
-def svg_into(pdf, path, x, y, width, height):
+def svg_into(pdf, source, x, y, width, height):
     """Render the small, explicit SVG vocabulary emitted by our generators.
 
     Unsupported tags/transform functions fail loudly instead of silently
     disappearing from the PDF. y is measured down from the page's top.
     """
-    root = ET.parse(path).getroot()
+    root = ET.fromstring(source) if isinstance(source,str) and source.lstrip().startswith('<svg') else ET.parse(source).getroot()
     view = list(map(float, root.attrib.get("viewBox", "0 0 1 1").split()))
     factor = min(width/view[2], height/view[3])
     pdf.saveState()
@@ -192,85 +196,151 @@ def bookmark(pdf, title, key):
     pdf.addOutlineEntry(title,key,level=0,closed=False)
 
 
+def compact_case(case):
+    body = '<rect x="1" y="1" width="244" height="210" rx="10" fill="white" stroke="#dde5ed"/>'
+    body += text(14, 24, f'CASE {case["name"]}', 15, INK, 'font-weight="700"')
+    body += text(231, 24, f'{len(case["loops"])} loops', 10, MUTED, 'text-anchor="end"')
+    body += cube(case, scale=94, origin=(123, 111))
+    body += text(14, 190, f'face 0x{case["face_key"]:02X}   counts {case["face_counts"]}', 10, MUTED)
+    body += text(14, 205, f'cube 0x{case["cube_corners"] | (case["cube_pairs"] << 8):05X}', 9, MUTED)
+    return svg_document(246, 212, body, f'Case {case["name"]}')
+
+
+def complement_tile(pair):
+    body = '<rect x="1" y="1" width="374" height="202" rx="10" fill="white" stroke="#dde5ed"/>'
+    body += text(14, 23, f'0x{pair["key_a"]:02X} / 0x{pair["key_b"]:02X}', 15, INK, 'font-weight="700"')
+    body += text(361, 23, f'{pair["template_a"]} / {pair["template_b"]}', 11, MUTED, 'text-anchor="end"')
+    body += connected_face(pair["case_a"], 48, 61, 94, A_COLOR)
+    body += connected_face(pair["case_b"], 234, 61, 94, B_COLOR)
+    body += text(95, 191, 'A 合法', 12, A_COLOR, 'text-anchor="middle"')
+    body += text(281, 191, 'B 合法', 12, B_COLOR, 'text-anchor="middle"')
+    return svg_document(376, 204, body, '合法输入的内外翻转连接对照')
+
+
+def invalid_rows(states):
+    rows = []
+    for group in range(1, 5):
+        subset = [s for s in states if s["group"] == group]
+        for offset in range(0, len(subset), 5):
+            rows.append((group, offset, len(subset), subset[offset:offset+5]))
+    return rows
+
+
 def main():
-    parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output",type=Path,default=DEFAULT_OUTPUT)
-    parser.add_argument("--cjk-font",type=Path)
-    args=parser.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--cjk-font", type=Path)
+    args = parser.parse_args()
     setup_font(args.cjk_font)
-    cases=json.loads((ROOT/"doc/double_crossing/cases/cases.json").read_text(encoding="utf-8"))["cases"]
-    conflict_data=json.loads((ROOT/"doc/double_crossing/conflicts/conflicts.json").read_text(encoding="utf-8"))
-    pairs=conflict_data["pairs"]
-    if len(cases)!=23 or len(pairs)!=7:
-        raise ValueError("Expected all 23 representative cases and all 7 complement pairs")
-    total=1+math.ceil(len(cases)/2)+1+len(pairs)
-    args.output.parent.mkdir(parents=True,exist_ok=True)
-    pdf=canvas.Canvas(str(args.output),pagesize=(W,H),pageCompression=1,invariant=1)
-    pdf.setTitle("MeshUtil 双交点连接图册：23 个代表 case 与 7 组内外翻转对照")
+    cases = json.loads((ROOT/"doc/double_crossing/cases/cases.json").read_text(encoding="utf-8"))["cases"]
+    pairs = json.loads((ROOT/"doc/double_crossing/conflicts/conflicts.json").read_text(encoding="utf-8"))["pairs"]
+    invalid = build_invalid()
+    stored = json.loads((ROOT/"doc/double_crossing/invalid/invalid.json").read_text(encoding="utf-8"))
+    if stored != invalid:
+        raise ValueError("Invalid-input diagrams are stale; regenerate them first")
+    if len(cases) != 23 or len(pairs) != 7:
+        raise ValueError("Expected 23 representative cases and seven legal complement pairs")
+    by_name = {c["name"]: c for c in cases}
+    valid_pages = [
+        ("合法模板 / 0 个内部角点", [("0 内 / 4 外", ["1a", "1b", "1c"]), ("0 内 / 4 外（续）", ["1d", "1e", "1f"])]),
+        ("合法模板 / 1 个与 3 个内部角点", [("1 内 / 3 外", ["2a", "2b", "2c"]), ("3 内 / 1 外", ["11a", "11b", "11c"])]),
+        ("合法模板 / 2 个内部角点", [("内部角点相邻", ["3a", "3b", "3c"]), ("内部角点相邻（3d） / 对角（4a）", ["3d", "4a"])]),
+        ("合法模板 / 4 个内部角点", [("4 内 / 0 外", ["12a", "12b", "12c"]), ("4 内 / 0 外（续）", ["12d", "12e", "12f"])]),
+    ]
+    drawn_names = [name for _, rows in valid_pages for _, names in rows for name in names]
+    if sorted(drawn_names) != sorted(by_name):
+        raise ValueError("Valid-case classification must cover each seed exactly once")
+    rows = invalid_rows(invalid["states"])
+    index_pages = math.ceil(len(rows)/4)
+    appendix_start = 10 + index_pages
+    total = 9 + index_pages + math.ceil(len(pairs)/4)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    pdf = canvas.Canvas(str(args.output), pagesize=(W, H), pageCompression=1, invariant=1)
+    pdf.setTitle("MeshUtil 双交点图册：合法模板与非法输入分类")
     pdf.setAuthor("MeshUtil")
-    pdf.setSubject("Source-backed face templates, cube examples and complement-pairing differences")
-    page=1
-    page_start(pdf,"双交点连接图册","阅读说明 / 2026-09-29",page,total)
-    bookmark(pdf,"阅读说明","guide")
-    label(pdf,36,106,"23 个代表 case + 7 组内外翻转对照",18,TEAL)
-    paragraph(pdf,"按项目源码查表规则绘制，所有图形均为可缩放矢量。",36,133,750,12)
-    svg_into(pdf,ROOT/"doc/double_crossing/cases/case-3d.svg",36,171,355,305)
-    label(pdf,427,190,"如何读图",16,INK,True)
-    y=paragraph(pdf,"实心角点表示内部，空心角点表示外部；小圆点是边交点；黄色点是面内转折点。彩色线区分闭合边界环，半透明面表示示意曲面。",427,220,370,12,20)
-    y=paragraph(pdf,"每个二维面复制到 z=0 与 z=1，四条 z 方向边均无交点，六面查表后形成完整立方体。这是面模板的一种三维延伸。",427,y+14,370,12,20)
-    paragraph(pdf,"23 是按旋转/镜像归并后的面模板数。展开后有 82 个合法面状态，完整立方体有 36,450 个合法编码。",427,y+14,370,12,20)
-    paragraph(pdf,"坐标约定：单交点 t=0.5，双交点 t=0.32/0.68，黄色点向面内偏移 0.20。几何为示意，不是 GT mesh 重建。",36,510,760,10.5,17)
-    label(pdf,36,546,"github.com/crazyMessi/MeshUtil",10,TEAL)
-    pdf.linkURL("https://github.com/crazyMessi/MeshUtil",(36,H-550,250,H-534),relative=0)
+    pdf.setSubject("23 valid templates; all 174 invalid encodings; seven legal complement comparisons")
+    page = 1
+    page_start(pdf, "双交点图册 / 先看输入是否合法", "阅读说明 / 256 = 82 + 174", page, total)
+    bookmark(pdf, "阅读说明与分类", "guide")
+    paragraph(pdf, "一个正方形面用 4 个角点位 + 4 个 pair 位编码。每次穿越都会翻转内外，两次穿越后回到原符号。", 36, 102, 768, 12, 19)
+    label(pdf, 36, 122, "key = corners | (pairs << 4)：低四位记录角点内外，高四位记录各边是否请求两个交点。", 10, MUTED)
+    headings = [(49, "边两端符号"), (256, "pair = 0"), (503, "pair = 1（请求两次穿越）")]
+    pdf.setFillColor(color("#e2eef2")); pdf.roundRect(36, H-163, 770, 30, 5, fill=1, stroke=0)
+    for x, value in headings:
+        label(pdf, x, 153, value, 12, INK, True)
+    for yy, values in [(191, ["同号", "0 个交点：合法", "2 个交点：合法"]),
+                       (225, ["异号", "1 个交点：合法", "非法：两次翻转无法接到异号终点"])]:
+        for (x, _), value in zip(headings, values):
+            label(pdf, x, yy, value, 11.5, "#c53d42" if value.startswith("非法") else INK)
+    label(pdf, 36, 269, "第一章  合法输入", 16, TEAL, True)
+    paragraph(pdf, "82 个合法编码经面内旋转、镜像归并为 23 个代表模板。按内部角点数排列，展示每个模板的一种立方体延伸。", 36, 294, 646, 11.5, 18)
+    label(pdf, 734, 288, "02-05 页", 11, TEAL)
+    label(pdf, 36, 344, "第二章  非法输入", 16, "#c53d42", True)
+    paragraph(pdf, "174 个输入按矛盾边数分成 104、60、8、2 个。先看四张分步解释图，再查全部编码矩阵；它们没有可绘制的合法曲面。", 36, 369, 646, 11.5, 18)
+    label(pdf, 734, 363, f"06-{appendix_start-1:02d} 页", 11, "#c53d42")
+    label(pdf, 36, 419, "附录  合法输入的内外翻转连接差异", 16, TEAL, True)
+    paragraph(pdf, "7 组对照的两侧都属于合法输入。连接选择不同，不计入 174 个非法编码。", 36, 444, 646, 11.5, 18)
+    label(pdf, 734, 438, f"{appendix_start:02d}-{total:02d} 页", 11, TEAL)
+    paragraph(pdf, "图例：大实心角点=内，大空心角点=外，小圆=边交点，黄色=示意转折点；红色只标非法输入中的矛盾边。合法图中的不同线色区分闭环。", 36, 493, 765, 10.5, 17)
+    paragraph(pdf, "合法立方体：同一面输入复制到 z=0 和 z=1，竖边无交点。几何位置仅作示意，不代表真实网格重建。", 36, 535, 765, 10, 16)
     pdf.showPage()
 
-    for offset in range(0,len(cases),2):
-        page+=1
-        subset=cases[offset:offset+2]
-        title="代表模板 / "+" + ".join(c["name"] for c in subset)
-        page_start(pdf,title,"23 个面模板各自延伸的立方体示例",page,total)
-        bookmark(pdf,"Case "+" / ".join(c["name"] for c in subset),f"cases-{offset}")
-        for index,case in enumerate(subset):
-            x=36+index*393
-            svg_into(pdf,ROOT/f'doc/double_crossing/cases/case-{case["name"]}.svg',x,100,372,319)
-            label(pdf,x+12,452,f'面角点掩码 {case["face_corners"]:04b}  |  双交点掩码 {case["face_pairs"]:04b}',11)
-            label(pdf,x+12,477,"闭环节点数："+(" / ".join(str(len(l)) for l in case["loops"]) or "0"),11)
-            note="全部内部；没有边界环。" if case["name"]=="12a" else "全部外部；没有边界环。" if case["name"]=="1a" else "黄色点为示意转折位置。" if any(int(n)>=24 for n in case["nodes"]) else "连接和节点编号可在交互浏览页中对照。"
-            paragraph(pdf,note,x+12,505,342,10.5,17)
-        if len(subset)==1:
-            label(pdf,454,206,"下一节：连接冲突对照",18,TEAL)
-            paragraph(pdf,"固定边交点位置，将所有角点内外状态翻转，再比较两次查表结果。全部 7 组变化会逐组列出。",454,243,330,13,22)
+    for title, groups in valid_pages:
+        page += 1
+        page_start(pdf, title, "第一章 / 23 个代表模板；counts 按 e0,e1,e2,e3 排列", page, total)
+        bookmark(pdf, title, f"valid-{page}")
+        for row_index, (caption, names) in enumerate(groups):
+            top = 98 + row_index*230
+            label(pdf, 36, top-8, caption, 11, TEAL)
+            for col_index, name in enumerate(names):
+                svg_into(pdf, compact_case(by_name[name]), 36+col_index*260, top, 246, 212)
+        if page == 4:
+            paragraph(pdf, "按内部角点数分组后，再按角点相邻或对角、双交点边的位置区分模板。每张图都按源码六面查表结果绘制。", 565, 400, 230, 12, 22)
         pdf.showPage()
 
-    page+=1
-    page_start(pdf,"内外翻转时，哪些连接会改变？","7 组对照覆盖全部 14 个冲突状态",page,total)
-    bookmark(pdf,"冲突索引与定义","conflict-index")
-    paragraph(pdf,"这里的“冲突”指：固定面坐标与边交点位置，将四个角点的内外位全部翻转后，查表选择的无向配对改变。两侧是不同输入，不是同一个输入返回了两个矛盾答案。",36,99,764,12,20)
-    paragraph(pdf,"全部 14 个状态均为两内两外，合为 7 对，再按旋转/镜像归成 3 类。每对闭环数量相同，仍需比较连接到哪些交点。",36,157,764,12,20)
-    headings=[(48,"对照"),(178,"面编码 A / B"),(366,"边交点数 e0,e1,e2,e3"),(600,"两侧闭环数"),(723,"页码")]
-    pdf.setFillColor(color("#e2eef2"));pdf.roundRect(36,H-229,770,31,5,fill=1,stroke=0)
-    for x,t in headings: label(pdf,x,219,t,10.5,INK,True)
-    for i,pair in enumerate(pairs):
-        yy=251+i*32
-        if i%2==0:
-            pdf.setFillColor(colors.white);pdf.rect(36,H-yy-10,770,31,fill=1,stroke=0)
-        a,b=pair["case_a"],pair["case_b"]
-        values=[(48,f'{i+1:02d}'),(178,f'0x{pair["key_a"]:02X} / 0x{pair["key_b"]:02X}'),
-                (366,str(a["face_counts"])),(600,f'{len(a["loops"])} / {len(b["loops"])}'),(723,str(page+i+1))]
-        for x,t in values:label(pdf,x,yy,t,11)
-    paragraph(pdf,"规则原因：当前策略在 0/1/2 个内部角点时配对外部边界区间，在 3/4 个内部角点时配对内部区间。两内两外翻转后仍有两个内部角点，所选区间可能改变。",36,505,760,10.5,17)
-    pdf.showPage()
-
-    for i,pair in enumerate(pairs):
-        page+=1
-        title=f'冲突对照 {i+1:02d} / 0x{pair["key_a"]:02X} 与 0x{pair["key_b"]:02X}'
-        page_start(pdf,title,"固定交点位置，翻转全部角点内外位；配对变化，环数量不变。",page,total)
-        bookmark(pdf,title,f"conflict-{i+1}")
-        svg_into(pdf,ROOT/f'doc/double_crossing/conflicts/{pair["name"]}.svg',36,81,770,477.4)
+    for group, key in enumerate(invalid["representatives"], 1):
+        page += 1
+        title = f"非法输入 / {group} 条矛盾边，共 {invalid['counts_by_bad_edges'][str(group)]} 个编码"
+        page_start(pdf, title, "第二章 / 红色边的端点异号，却同时请求两个交点", page, total)
+        bookmark(pdf, title, f"invalid-example-{group}")
+        paragraph(pdf, "先看线框中是哪一个面，再看面上哪些边自相矛盾，最后沿一条红边数两次穿越。", 36, 103, 770, 12, 20)
+        svg_into(pdf, ROOT/f"doc/double_crossing/invalid/example-{group}.svg", 36, 125, 770, 362)
+        paragraph(pdf, "只要有一条矛盾边，整个面输入就非法。多条矛盾边是同一条规则被重复违反；公开接口会抛出 std::invalid_argument。", 36, 513, 770, 11.5, 19)
         pdf.showPage()
+
+    for offset in range(0, len(rows), 4):
+        page += 1
+        subset = rows[offset:offset+4]
+        groups = sorted({r[0] for r in subset})
+        category = "、".join(map(str, groups))
+        page_start(pdf, f"非法编码索引 / {category} 条矛盾边", "第二章 / c0 左下，c1 右下，c2 右上，c3 左上；e0 起沿角点顺序；红色为矛盾边", page, total)
+        bookmark(pdf, f"非法编码索引 {offset//4+1:02d}", f"invalid-index-{offset//4+1}")
+        body = ""
+        for row_index, (group, start, count, items) in enumerate(subset):
+            yy = row_index*116
+            body += text(0, yy+10, f'{group} 条矛盾边 / 本类 {count} 个 / 第 {start+1}-{start+len(items)} 个', 10, "#a63238")
+            for col_index, state in enumerate(items):
+                body += thumbnail(state, col_index*154, yy+15, width=150, height=100)
+        svg_into(pdf, svg_document(770, 464, body, "非法输入完整分类索引"), 36, 88, 770, 464)
+        pdf.showPage()
+
+    for offset in range(0, len(pairs), 4):
+        page += 1
+        page_start(pdf, "附录 / 内外翻转后的连接差异", "附录 / 两侧都合法；共 7 对，按旋转与镜像可归为 3 类", page, total)
+        bookmark(pdf, f"合法翻转对照 {offset+1}-{min(offset+4, len(pairs))}", f"appendix-{offset}")
+        paragraph(pdf, "固定边交点位置，仅翻转所有角点的内外位。配对可能改变，但两侧都满足穿越次数规则。", 36, 100, 770, 11.5, 18)
+        for index, pair in enumerate(pairs[offset:offset+4]):
+            svg_into(pdf, complement_tile(pair), 36+(index%2)*394, 120+(index//2)*220, 376, 204)
+        if offset == 4:
+            label(pdf, 447, 381, "与非法输入的区别", 16, TEAL)
+            paragraph(pdf, "这些是两个不同的合法输入，各自有确定的查表结果。174 个非法编码则连端点符号与交点数都无法同时满足。", 447, 414, 326, 12, 22)
+            paragraph(pdf, "黄色点是面内转折点。完整立方体对照、交互图和可单独下载的 SVG 均保留在仓库中。", 447, 503, 326, 10.5, 17)
+        pdf.showPage()
+    if page != total:
+        raise ValueError(f"Page count mismatch: {page} != {total}")
     pdf.save()
-    print(f"Created {args.output}: {page} pages; 23 case diagrams + 7 conflict comparisons; vector graphics.")
+    print(f"Created {args.output}: {page} pages; 23 valid cubes + 174 invalid inputs + 7 legal complement pairs; vector graphics.")
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

@@ -2,7 +2,7 @@
 
 [打开交互浏览页](index.html) · [查看完整总览](overview.svg) · [示例数据](cases.json)
 
-[7 组内外翻转冲突对照](../conflicts/README.md) · [下载包含全部示例和冲突图的 PDF](../../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+[174 个非法输入图例](../invalid/README.md) · [7 组内外翻转后的连接差异](../conflicts/README.md) · [下载分类 PDF 图册](../../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
 
 本目录为 `tools/generate_double_crossing_tables.py` 中全部 **23 个命名代表模板**各画一个立方体。
 这些模板原本是二维面 case，通过旋转、镜像展开为 82 个面状态；本图集不是全部 36,450 个三维编码的枚举。
@@ -30,14 +30,14 @@
 
 ## 独立图片
 
-| 分组 | Case 图片 |
+| 内部角点分组 | Case 图片 |
 | --- | --- |
-| 1 | [1a](case-1a.svg) · [1b](case-1b.svg) · [1c](case-1c.svg) · [1d](case-1d.svg) · [1e](case-1e.svg) · [1f](case-1f.svg) |
-| 2 | [2a](case-2a.svg) · [2b](case-2b.svg) · [2c](case-2c.svg) |
-| 3 | [3a](case-3a.svg) · [3b](case-3b.svg) · [3c](case-3c.svg) · [3d](case-3d.svg) |
-| 4 | [4a](case-4a.svg) |
-| 11 | [11a](case-11a.svg) · [11b](case-11b.svg) · [11c](case-11c.svg) |
-| 12 | [12a](case-12a.svg) · [12b](case-12b.svg) · [12c](case-12c.svg) · [12d](case-12d.svg) · [12e](case-12e.svg) · [12f](case-12f.svg) |
+| 0 个 | [1a](case-1a.svg) · [1b](case-1b.svg) · [1c](case-1c.svg) · [1d](case-1d.svg) · [1e](case-1e.svg) · [1f](case-1f.svg) |
+| 1 个 | [2a](case-2a.svg) · [2b](case-2b.svg) · [2c](case-2c.svg) |
+| 2 个，相邻 | [3a](case-3a.svg) · [3b](case-3b.svg) · [3c](case-3c.svg) · [3d](case-3d.svg) |
+| 2 个，对角 | [4a](case-4a.svg) |
+| 3 个 | [11a](case-11a.svg) · [11b](case-11b.svg) · [11c](case-11c.svg) |
+| 4 个 | [12a](case-12a.svg) · [12b](case-12b.svg) · [12c](case-12c.svg) · [12d](case-12d.svg) · [12e](case-12e.svg) · [12f](case-12f.svg) |
 
 ## 重新生成
 
