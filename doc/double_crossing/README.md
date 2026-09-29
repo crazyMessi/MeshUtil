@@ -147,12 +147,15 @@ inputs**: at least one edge has opposite endpoint signs and its pair bit set.
 Each genuine crossing flips inside/outside, so two crossings require matching
 endpoint signs. Such inputs raise `std::invalid_argument`.
 
-![Two crossings require matching endpoint signs; an inside label at B contradicts two crossings from an outside A.](assets/crossing-parity.svg)
+![Two cube cells containing the same thin slab: valid outside corner labels on the left, and an incorrect inside label at B on the right. The highlighted grid edge crosses the slab twice.](assets/crossing-parity.svg)
 
-The upper row has consistent labels. In the lower row, the supplied label at B
-says inside even though the two crossings require outside. A face code with
-any such edge is rejected; these are not additional valid geometric cases
-missing from the table.
+Each wireframe is one cube cell. The translucent slab is the inside region;
+its two boundary surfaces intersect the highlighted grid edge at `p0` and `p1`.
+The left cube has consistent outside corner labels. The right cube shows the
+same geometry but incorrectly labels B as inside, even though crossing twice
+from outside requires outside. A face code with any such edge is rejected;
+these are not additional valid geometric cases missing from the table. The
+count of 174 refers to the **face encoding**, not to the number of cube cases.
 
 Face endpoint IDs are `2*edge+slot`;
 `slot` is ordered by increasing parameter along the directed edge. A single
