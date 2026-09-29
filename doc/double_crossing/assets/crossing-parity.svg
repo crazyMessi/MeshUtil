@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420" role="img" aria-labelledby="title description">
+  <title id="title">Why a two-crossing edge requires matching endpoint signs</title>
+  <desc id="description">The upper row shows a valid edge from A outside, through crossing p0 into the interior, through crossing p1 back outside, to B outside. The lower row shows the same two crossings but an input that incorrectly labels B inside. Two crossings require B to be outside, so this contradictory encoding is rejected.</desc>
+  <rect width="800" height="420" fill="#ffffff"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#17212e">
+    <text x="32" y="35" font-size="23" font-weight="700">Two crossings on one grid edge</text>
+    <text x="32" y="61" font-size="16">Each crossing flips inside / outside; two crossings restore the starting state.</text>
+
+    <text x="32" y="98" font-size="17" font-weight="700">Valid input · matching endpoint signs</text>
+    <g font-size="16" text-anchor="middle">
+      <text x="178" y="123">Outside</text>
+      <text x="400" y="123">Inside</text>
+      <text x="622" y="123">Outside</text>
+    </g>
+    <rect x="292" y="134" width="216" height="40" rx="3" fill="#e7f0fb"/>
+    <path d="M 64 154 H 292 M 508 154 H 736" fill="none" stroke="#667588" stroke-width="3"/>
+    <path d="M 292 154 H 508" fill="none" stroke="#2867a5" stroke-width="3"/>
+    <path d="M 292 132 V 176 M 508 132 V 176" fill="none" stroke="#17212e" stroke-width="1.5"/>
+    <circle cx="292" cy="154" r="4" fill="#17212e"/>
+    <circle cx="508" cy="154" r="4" fill="#17212e"/>
+    <circle cx="64" cy="154" r="7" fill="#ffffff" stroke="#17212e" stroke-width="2"/>
+    <circle cx="736" cy="154" r="7" fill="#ffffff" stroke="#17212e" stroke-width="2"/>
+    <g font-size="15" text-anchor="middle">
+      <text x="292" y="198">p₀: enter</text>
+      <text x="508" y="198">p₁: exit</text>
+    </g>
+    <text x="64" y="214" font-size="16">A: outside</text>
+    <text x="736" y="214" font-size="16" text-anchor="end">B: outside</text>
+
+    <path d="M 32 233 H 768" fill="none" stroke="#dce2e8"/>
+
+    <text x="32" y="262" font-size="17" font-weight="700">Rejected input · opposite endpoint signs</text>
+    <g font-size="16" text-anchor="middle">
+      <text x="178" y="288">Outside</text>
+      <text x="400" y="288">Inside</text>
+      <text x="622" y="288">Outside</text>
+    </g>
+    <rect x="292" y="299" width="216" height="40" rx="3" fill="#e7f0fb"/>
+    <path d="M 64 319 H 292 M 508 319 H 736" fill="none" stroke="#667588" stroke-width="3"/>
+    <path d="M 292 319 H 508" fill="none" stroke="#2867a5" stroke-width="3"/>
+    <path d="M 292 297 V 341 M 508 297 V 341" fill="none" stroke="#17212e" stroke-width="1.5"/>
+    <circle cx="292" cy="319" r="4" fill="#17212e"/>
+    <circle cx="508" cy="319" r="4" fill="#17212e"/>
+    <circle cx="64" cy="319" r="7" fill="#ffffff" stroke="#17212e" stroke-width="2"/>
+    <circle cx="736" cy="319" r="8" fill="#2867a5" stroke="#b42318" stroke-width="2.5"/>
+    <g font-size="15" text-anchor="middle">
+      <text x="292" y="363">p₀: enter</text>
+      <text x="508" y="363">p₁: exit</text>
+    </g>
+    <text x="64" y="379" font-size="16">A: outside</text>
+    <g fill="#b42318" text-anchor="end">
+      <text x="736" y="379" font-size="16" font-weight="700">B: inside (incorrect input)</text>
+      <text x="736" y="403" font-size="16">Required after two crossings: outside</text>
+    </g>
+  </g>
+</svg>

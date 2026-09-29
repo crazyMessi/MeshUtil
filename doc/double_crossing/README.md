@@ -142,7 +142,19 @@ indicates a pair of crossings on edge `i`:
 - Equal endpoint signs allow zero crossings (pair bit 0) or two (pair bit 1).
 
 The face key is `corner_mask | (pair_mask << 4)`. Of the 256 bit patterns,
-82 satisfy these constraints. Face endpoint IDs are `2*edge+slot`;
+82 satisfy these constraints. The other **174 encodings are contradictory
+inputs**: at least one edge has opposite endpoint signs and its pair bit set.
+Each genuine crossing flips inside/outside, so two crossings require matching
+endpoint signs. Such inputs raise `std::invalid_argument`.
+
+![Two crossings require matching endpoint signs; an inside label at B contradicts two crossings from an outside A.](assets/crossing-parity.svg)
+
+The upper row has consistent labels. In the lower row, the supplied label at B
+says inside even though the two crossings require outside. A face code with
+any such edge is rejected; these are not additional valid geometric cases
+missing from the table.
+
+Face endpoint IDs are `2*edge+slot`;
 `slot` is ordered by increasing parameter along the directed edge. A single
 crossing uses slot 0. The second crossing uses slot 1.
 
