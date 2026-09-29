@@ -16,6 +16,11 @@ and 0–2 distinct crossings per edge and returns face paths or cube boundary
 loops. Callers supply intersection positions, yellow-turn geometry, and
 triangulation. More than two crossings are rejected.
 
+The double-crossing module includes [23 illustrated cube examples](doc/double_crossing/cases/README.md),
+[7 complement-pairing comparisons](doc/double_crossing/conflicts/README.md),
+and a [21-page vector PDF atlas](output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf).
+The examples also have individual SVG diagrams, overviews, and an offline interactive gallery.
+
 ## Build
 
 Requires CMake 3.16+ and a C++17 compiler. The C++ modules have no external

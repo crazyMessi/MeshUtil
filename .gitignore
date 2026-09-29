@@ -2,3 +2,5 @@ build/
 temp_output/
 *.o
 *.obj
+__pycache__/
+/tmp/pdfs/

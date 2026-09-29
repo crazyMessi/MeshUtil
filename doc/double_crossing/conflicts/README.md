@@ -1,0 +1,40 @@
+# 内外翻转后的配对冲突示例
+
+[冲突总览](overview.svg) · [23 个代表 case](../cases/README.md) · [机器可读完整数据](conflicts.json)
+
+[下载包含全部示例和冲突图的 PDF](../../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+
+这里的“冲突”是指：**固定面坐标、边编号和交点槽编号，把四个角点的内外状态全部翻转后，查表给出的无向端点配对改变**。它说明本表不能把内外翻转当成压缩对称；并不表示同一个输入在表中有两种自相矛盾的结果，也不声称两幅图来自同一个 GT 网格。
+
+枚举全部 82 个合法面状态，比较 `key` 和 `key ^ 0x0F`，得到 14 个状态、7 对互补输入。再按同时旋转/镜像、允许 A/B 两侧交换归并，可得 **3 类**：对角角点四条单交边（1 对）；相邻角点一条双交边（4 对）；相邻角点两条双交边（2 对）。原始 23 个模板中涉及 `3b`、`3c`、`3d`、`4a`。
+
+| 对照图 | 面编码 A / B | 代表模板 A / B | 旋转镜像类 | 边交点数 e0…e3 |
+| --- | --- | --- | --- | --- |
+| [conflict-01](conflict-01.svg) | `0x05` / `0x0A` | 4a / 4a | family-01 | [1, 1, 1, 1] |
+| [conflict-02](conflict-02.svg) | `0x13` / `0x1C` | 3b / 3c | family-02 | [2, 1, 0, 1] |
+| [conflict-03](conflict-03.svg) | `0x26` / `0x29` | 3b / 3c | family-02 | [1, 2, 1, 0] |
+| [conflict-04](conflict-04.svg) | `0x43` / `0x4C` | 3c / 3b | family-02 | [0, 1, 2, 1] |
+| [conflict-05](conflict-05.svg) | `0x53` / `0x5C` | 3d / 3d | family-03 | [2, 1, 2, 1] |
+| [conflict-06](conflict-06.svg) | `0x86` / `0x89` | 3c / 3b | family-02 | [1, 0, 1, 2] |
+| [conflict-07](conflict-07.svg) | `0xA6` / `0xA9` | 3d / 3d | family-03 | [1, 2, 1, 2] |
+
+## 图怎么读
+
+- 每张图上方是 A/B 两个立方体，下方是对应的 `z=0` 二维面。橙色为 A 的选定配对，蓝色为 B 的选定配对。
+- 实心角点表示 inside，空心角点表示 outside；两侧所有角点的状态相反，但边上的交点位置和数量完全相同。
+- `eI:J` 是二维面边 I 的第 J 个交点，与源表一致；边方向为 `c0→c1→c2→c3→c0`，槽编号沿边方向递增。**这是面局部标签，不是 C++ 立方体全局节点 ID。**
+- 黄色 `Y` 是路径必须进入面内部再返回同一条边时的示意转折点；具体位置和是否展开为多个点，仍依赖实际输入几何。
+- 立方体在 `z=0` 和 `z=1` 重复该面输入，竖向边没有交点。上方浅灰蓝线展示六个面按原表组装的完整边界环，彩色强调 `z=0` 的差异。
+- 本组互补输入的边界环数量相同，但连接到哪些交点不同。因此只数环不能判断配对是否一致。
+- 图中的交点取边中点，或双交点的 0.32/0.68 参数位置，黄色点取示意偏移；这些是可视化坐标，**不是 GT 表面或实际三角化重建结果**。
+
+## 复现与验证
+
+```bash
+python tools/render_double_crossing_conflicts.py
+python tools/render_double_crossing_conflicts.py --check
+```
+
+生成器调用 `double_crossing_case_data.build_cases(True)` 取得全部面状态及六面组装的立方体数据，用源表的无向 `signature` 比较内外翻转。它同时检查交点编号与坐标不变、立方体角点恰好互补、14 状态 / 7 对 / 3 类的穷举数量；`--check` 再按字节验证提交的 SVG、JSON 和本说明可确定性复现。
+
+`conflicts.json` 的每个 `pairs[]` 包含 `key_a/key_b`、原始 `case_a/case_b` 完整数据、`template_a/template_b`、共同与各侧独有的无向端点对 `same_connections/only_a/only_b`，以及 `family` 分类。是否含黄色转折由各 `case_*.seed_paths` 保留，不能仅由端点对字段解释几何。

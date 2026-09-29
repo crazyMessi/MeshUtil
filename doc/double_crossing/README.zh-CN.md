@@ -2,6 +2,10 @@
 
 [完整接口与编码说明（English）](README.md)
 
+[23 个 case 的立方体示例](cases/README.md) · [交互浏览页](cases/index.html) · [全部示例总览](cases/overview.svg)
+
+[7 组内外翻转冲突对照](conflicts/README.md) · [下载完整 PDF 图册（21 页）](../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+
 ## 定位
 
 这是一个面向粗网格曲面重建的 **C++17 连接关系模块**，位于“mesh 与网格求交”和“生成三角形”之间。它接受角点内外状态，以及每条 grid edge 上 0、1、2 个不同交点的信息，输出网格面上的连接路径和 cube 的闭合边界环。

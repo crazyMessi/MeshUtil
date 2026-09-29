@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MeshUtil · 23 个 case 的示例立方体</title>
+<style>
+:root{color-scheme:light;--ink:#20364e;--muted:#65798d;--line:#dce5ee;--teal:#008d91;--paper:#f4f7fa}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.6 "Segoe UI","Microsoft YaHei",sans-serif}
+main{max-width:1400px;margin:0 auto;padding:36px 32px 64px}header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:28px}.eyebrow{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--teal)}h1{font-size:34px;line-height:1.25;letter-spacing:-1px;margin:8px 0 14px}p{margin:8px 0;color:var(--muted)}a{color:#137b86;text-underline-offset:3px}.header-links{display:flex;gap:18px;white-space:nowrap;margin-top:12px}.viewer{display:grid;grid-template-columns:minmax(0,1fr) 320px;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:white;box-shadow:0 12px 36px #243d5610}.scene{padding:20px 24px;min-width:0}.scene-top{display:flex;align-items:center;justify-content:space-between;gap:18px}.scene-title{font-size:23px;font-weight:700}.pill{background:#e5f5f3;color:#087c80;padding:4px 12px;border-radius:30px;font-size:12px;font-weight:600}#cube{display:block;width:100%;height:430px;touch-action:none;cursor:grab;user-select:none}#cube.dragging{cursor:grabbing}.tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:13px;color:var(--muted)}button,select,input{font:inherit}button,select{border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);padding:7px 12px;cursor:pointer}button:hover{border-color:#70bfc2;background:#f2fbfb}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #70bfc2;outline-offset:2px}label{display:inline-flex;align-items:center;gap:5px}input[type=checkbox]{accent-color:var(--teal)}.hint{font-size:12px;margin-top:9px}.details{padding:24px;background:#fbfcfe;border-left:1px solid var(--line)}.details h2{font-size:15px;margin:0 0 12px}#face{width:100%;height:175px;display:block}dl{margin:12px 0;display:grid;grid-template-columns:94px 1fr;font-size:13px;gap:9px}dt{color:var(--muted)}dd{margin:0;font-family:Consolas,monospace;color:var(--ink)}.notes{font-size:12px;color:var(--muted);padding-top:14px;border-top:1px solid var(--line)}.legend{display:flex;flex-wrap:wrap;gap:20px;font-size:13px;margin:22px 0}.legend span{display:inline-flex;align-items:center;gap:7px}.dot{width:11px;height:11px;border:2px solid var(--ink);border-radius:50%;display:inline-block}.inside{background:var(--ink)}.outside{background:white}.hit{border-color:var(--teal);background:white;width:9px;height:9px}.turn{border-color:#ae7705;background:#f5bf3e;width:9px;height:9px}.stroke{height:3px;width:19px;background:var(--teal);display:inline-block}.section-top{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:34px;margin-bottom:16px}.section-top h2{font-size:20px;margin:0}.search{padding:9px 12px;border-radius:8px;border:1px solid var(--line);width:230px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.case-card{padding:0;overflow:hidden;text-align:left;background:transparent;border:2px solid transparent;border-radius:15px;transition:transform .15s,border-color .15s}.case-card:hover{transform:translateY(-3px)}.case-card.selected{border-color:var(--teal)}.case-card img{display:block;width:100%;height:auto}.case-card[hidden]{display:none}footer{font-size:13px;margin-top:28px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted)}code{font-family:Consolas,monospace;font-size:.95em}.empty{display:none;color:var(--muted)}noscript{display:block;padding:12px;background:#fff4d6}#status{color:var(--teal)}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.viewer{grid-template-columns:minmax(0,1fr) 270px}h1{font-size:29px}}
+@media(max-width:900px){main{padding:22px 16px}header{display:block}.header-links{margin-top:18px}.viewer{grid-template-columns:1fr}.details{border-left:0;border-top:1px solid var(--line)}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#cube{height:340px}.scene{padding:14px}.scene-top{gap:8px}.scene-title{font-size:21px}.section-top{align-items:flex-start;flex-direction:column;gap:12px}.search{width:100%}.legend{gap:12px}}
+@media print{main{padding:0}.viewer,.tools,.header-links,.search{display:none}.grid{grid-template-columns:repeat(4,1fr)}.case-card{break-inside:avoid}.legend{margin:10px 0}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div><div class="eyebrow">MESHUTIL / DOUBLE-CROSSING</div><h1>23 个 case 的示例立方体</h1>
+<p>23 个代表模板 · 同一面状态沿 z 方向延伸 · 对照真实查表连接</p></div>
+<nav class="header-links" aria-label="文件"><a href="overview.svg" target="_blank">查看总览图 ↗</a><a href="cases.json" download>下载示例数据</a><a href="../README.zh-CN.md">模块说明</a></nav>
+</header>
+<p style="margin-bottom:20px">新增：<a href="../conflicts/overview.svg" target="_blank">7 组内外翻转冲突对照</a> · <a href="https://github.com/crazyMessi/MeshUtil/blob/main/output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf" target="_blank">完整 PDF 图册（21 页）↗</a></p>
+<noscript>旋转查看需要 JavaScript。下方 23 张独立立方体图片仍可直接查看。</noscript>
+<section class="viewer" aria-label="可旋转的示例立方体">
+<div class="scene"><div class="scene-top"><div class="scene-title" id="caseTitle">Case 1b</div><span class="pill" id="loopCount"></span>
+<select id="caseSelect" aria-label="选择 case"></select></div>
+<svg id="cube" viewBox="70 0 560 430" role="img" aria-label="立方体示例；拖动旋转"></svg>
+<div class="tools"><button id="previous" aria-label="上一个 case">← 上一个</button><button id="next" aria-label="下一个 case">下一个 →</button><button id="reset">重置视角</button><label><input id="labels" type="checkbox" checked>节点编号</label><label><input id="surface" type="checkbox" checked>示意曲面</label><label>缩放 <input id="zoom" type="range" min="140" max="250" value="190" aria-label="缩放"></label></div>
+<p class="hint">拖动旋转查看。c0–c7 是立方体角点；数字是 API 输出的节点 ID。不同颜色区分闭合边界环。</p></div>
+<aside class="details"><h2>基准面 · z = 0</h2><svg id="face" viewBox="0 0 260 175" role="img" aria-label="原始二维面 case"></svg>
+<dl><dt>面编码</dt><dd id="faceKey"></dd><dt>角点掩码</dt><dd id="cornerMask"></dd><dt>双交点掩码</dt><dd id="pairMask"></dd><dt>边交点数</dt><dd id="faceCounts"></dd><dt>立方体编码</dt><dd id="cubeKey"></dd><dt>闭环节点数</dt><dd id="loopSizes"></dd></dl>
+<p class="notes">二维图的 c0–c3 是局部面角点，对应立方体 c0、c1、c3、c2。四条边按 e0、e1、e2、e3 逆时针排列。</p>
+<a id="downloadSvg" href="case-1b.svg" download>下载当前 case 的 SVG ↗</a></aside>
+</section>
+<div class="legend"><span><i class="dot inside"></i>内部角点</span><span><i class="dot outside"></i>外部角点</span><span><i class="dot hit"></i>边上的交点</span><span><i class="dot turn"></i>面内转折点（示意位置）</span><span><i class="stroke"></i>闭合边界环</span></div>
+<p>每个示例把原始面复制到 z = 0 和 z = 1，四条 z 方向边均无交点。浅蓝底面是基准面。这是该面 case 的一种立方体延伸。</p>
+<div class="section-top"><h2>全部代表 case <span id="status">23 / 23</span></h2><input id="search" class="search" type="search" placeholder="筛选 case，例如 12 或 3b" aria-label="筛选 case"></div>
+<div class="grid" id="cards">__CASE_CARDS__</div><p class="empty" id="empty">没有匹配的 case。</p>
+<footer>连接数据来自 <code>tools/generate_double_crossing_tables.py</code> 中的 23 个 SEEDS，六面组合遵循 C++ 接口。单交点取边中点，双交点取边参数 0.32 / 0.68；黄色点向面内偏移 0.20。曲面为连接示意，坐标及填充均非 GT 重建结果。1a 与 12a 分别表示全部外部与全部内部，均没有边界环。<br>本页可离线打开，无外部脚本或在线依赖。</footer>
+</main>
+<script id="case-data" type="application/json">__CASE_DATA__</script>
+<script>
+'use strict';
+const DATA=JSON.parse(document.getElementById('case-data').textContent);
+const cases=DATA.cases, palette=['#008d91','#df6c35','#8661c5','#347dcc'];
+const $=id=>document.getElementById(id);
+let current=1,yaw=.56,elevation=.36,scale=190;
+const fmt=(n,width)=>'0x'+n.toString(16).toUpperCase().padStart(width,'0');
+const svgText=(x,y,t,fill='#516276',size=11)=>`<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" font-family="Segoe UI,Microsoft YaHei,sans-serif" paint-order="stroke" stroke="white" stroke-width="3" stroke-linejoin="round">${t}</text>`;
+function projection(p){const [x,y,z]=p.map(v=>v-.5);let u=x*Math.cos(yaw)+y*Math.sin(yaw),d=-x*Math.sin(yaw)+y*Math.cos(yaw);return [350+u*scale,212-(z*Math.cos(elevation)-d*Math.sin(elevation))*scale,d*Math.cos(elevation)+z*Math.sin(elevation)];}
+function poly(coords,fill,stroke,width=1,opacity=1,close=false){const p=coords.map(projection);return `<${close?'polygon':'polyline'} points="${p.map(q=>q.slice(0,2).join(',')).join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${width}" opacity="${opacity}" stroke-linejoin="round"/>`;}
+function circle(x,y,r,fill,stroke){return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.7"/>`;}
+function drawCube(){const c=cases[current],layers=[];let out='';
+out+=poly([0,1,3,2].map(i=>DATA.corners[i]),'#e4f0fa','none',0,.55,true);
+if($('surface').checked){(c.patches||[]).map(p=>({p,depth:p.reduce((s,v)=>s+projection(v)[2],0)/p.length})).sort((a,b)=>a.depth-b.depth).forEach(({p})=>out+=poly(p,'#27aca6','none',0,.16,true));}
+DATA.edges.forEach(([a,b])=>layers.push({depth:(projection(DATA.corners[a])[2]+projection(DATA.corners[b])[2])/2,html:poly([DATA.corners[a],DATA.corners[b]],'none','#9eafc0',1.6)}));
+c.loops.forEach((loop,index)=>{for(let j=0;j<loop.length;j++){let a=c.nodes[loop[j]],b=c.nodes[loop[(j+1)%loop.length]];layers.push({depth:(projection(a)[2]+projection(b)[2])/2,html:poly([a,b],'none',palette[index%4],3.8)});}});
+layers.sort((a,b)=>a.depth-b.depth).forEach(p=>out+=p.html);
+Object.entries(c.nodes).sort((a,b)=>projection(a[1])[2]-projection(b[1])[2]).forEach(([id,point])=>{const [x,y]=projection(point),yellow=Number(id)>=24;out+=circle(x,y,4.8,yellow?'#f5bf3e':'white',yellow?'#ae7705':'#008d91');if($('labels').checked)out+=svgText(x+8,y-8,id);});
+DATA.corners.forEach((p,i)=>{const [x,y]=projection(p);out+=circle(x,y,6,(c.cube_corners&(1<<i))?'#20364e':'white','#20364e');if($('labels').checked)out+=svgText(x-20,y+5,'c'+i,'#20364e',12);});
+if(!c.loops.length)out+=svgText(286,216,c.cube_corners?'全部内部 · 无边界环':'全部外部 · 无边界环','#65798d',14);
+$('cube').innerHTML=out;$('cube').setAttribute('aria-label',`Case ${c.name}，${c.loops.length} 个闭合边界环，拖动可旋转`);
+}
+function drawFace(){const c=cases[current],fc=[[0,0],[1,0],[1,1],[0,1]],q=p=>[70+p[0]*120,145-p[1]*120];let out='';
+out+='<rect x="70" y="25" width="120" height="120" fill="#edf5fb" stroke="#9eafc0"/>';
+c.face_paths.filter(p=>p.face===0).forEach(path=>{const pts=path.nodes.map(id=>q(c.nodes[id]));out+=`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#008d91" stroke-width="3"/>`;path.nodes.forEach((id,i)=>out+=circle(...pts[i],3.7,Number(id)>=24?'#f5bf3e':'white',Number(id)>=24?'#ae7705':'#008d91'));});
+fc.forEach((p,i)=>{const [x,y]=q(p);out+=circle(x,y,4.5,(c.face_corners&(1<<i))?'#20364e':'white','#20364e');out+=svgText(x+(p[0]?8:-24),y+(p[1]?-8:16),'c'+i);});
+[[125,166,'e0'],[204,88,'e1'],[125,15,'e2'],[42,88,'e3']].forEach(v=>out+=svgText(...v));$('face').innerHTML=out;
+}
+function selectCase(index){current=(index+cases.length)%cases.length;const c=cases[current];$('caseTitle').textContent='Case '+c.name;$('caseSelect').value=c.name;$('loopCount').textContent=c.loops.length+' 个闭合边界环';$('faceKey').textContent=fmt(c.face_key,2);$('cornerMask').textContent=c.face_corners.toString(2).padStart(4,'0')+' (c3…c0)';$('pairMask').textContent=c.face_pairs.toString(2).padStart(4,'0')+' (e3…e0)';$('faceCounts').textContent='['+c.face_counts.join(', ')+']';$('cubeKey').textContent=fmt(c.cube_corners|(c.cube_pairs<<8),5);$('loopSizes').textContent=c.loops.length?c.loops.map(l=>l.length).join(' / '):'0';$('downloadSvg').href='case-'+c.name+'.svg';document.querySelectorAll('.case-card').forEach(b=>{const on=b.dataset.case===c.name;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on));});drawCube();drawFace();}
+$('caseSelect').innerHTML=cases.map(c=>`<option value="${c.name}">Case ${c.name}</option>`).join('');
+$('caseSelect').addEventListener('change',e=>selectCase(cases.findIndex(c=>c.name===e.target.value)));
+$('previous').addEventListener('click',()=>selectCase(current-1));$('next').addEventListener('click',()=>selectCase(current+1));
+$('reset').addEventListener('click',()=>{yaw=.56;elevation=.36;scale=190;$('zoom').value=190;drawCube();});
+['labels','surface'].forEach(id=>$(id).addEventListener('change',drawCube));$('zoom').addEventListener('input',e=>{scale=Number(e.target.value);drawCube();});
+let drag=null;$('cube').addEventListener('pointerdown',e=>{if(e.button!==0)return;drag=[e.clientX,e.clientY];e.currentTarget.setPointerCapture(e.pointerId);e.currentTarget.classList.add('dragging');});
+$('cube').addEventListener('pointermove',e=>{if(!drag)return;yaw+=(e.clientX-drag[0])*.008;elevation=Math.max(-1.35,Math.min(1.35,elevation+(e.clientY-drag[1])*.008));drag=[e.clientX,e.clientY];drawCube();});
+['pointerup','pointercancel','lostpointercapture'].forEach(name=>$('cube').addEventListener(name,()=>{drag=null;$('cube').classList.remove('dragging');}));
+document.querySelectorAll('.case-card').forEach(b=>b.addEventListener('click',()=>{selectCase(cases.findIndex(c=>c.name===b.dataset.case));document.querySelector('.viewer').scrollIntoView({behavior:'smooth',block:'start'});}));
+$('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase().replace(/^case\s*/, '').trim();let count=0;document.querySelectorAll('.case-card').forEach(b=>{b.hidden=!b.dataset.case.includes(q);if(!b.hidden)count++;});$('status').textContent=count+' / '+cases.length;$('empty').style.display=count?'none':'block';});
+selectCase(1);
+</script>
+</body>
+</html>

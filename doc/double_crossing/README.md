@@ -2,6 +2,10 @@
 
 [中文说明](README.zh-CN.md)
 
+[23 illustrated cube examples](cases/README.md) · [Interactive gallery](cases/index.html) · [Overview](cases/overview.svg)
+
+[7 complement-pairing comparisons](conflicts/README.md) · [Complete PDF atlas (21 pages)](../../output/pdf/MeshUtil_double_crossing_cases_and_conflicts.pdf)
+
 ## Purpose and place in a pipeline
 
 This is a **connectivity building block for coarse-grid surface reconstruction**.
